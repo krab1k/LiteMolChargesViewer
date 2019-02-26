@@ -1,0 +1,15 @@
+.App {
+  text-align: justify;
+  height:calc(100vh - 80px);
+}
+
+.App .Content{
+  padding:20px;
+}
+
+/*
+@media only screen and (max-width:650px){
+  .App .Content{
+    padding:5px;
+  } 
+}*/

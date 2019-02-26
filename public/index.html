@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="theme-color" content="#000000">
+    <!--
+      manifest.json provides metadata used when your web app is added to the
+      homescreen on Android. See https://developers.google.com/web/fundamentals/engage-and-retain/web-app-manifest/
+    -->
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json">
+    <link rel="shortcut icon" href="%PUBLIC_URL%/favicon.ico">
+    <link rel="stylesheet" href="%PUBLIC_URL%/bootstrap.min.css">
+    <!--
+      Notice the use of %PUBLIC_URL% in the tags above.
+      It will be replaced with the URL of the `public` folder during the build.
+      Only files inside the `public` folder can be referenced from the HTML.
+
+      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
+      work correctly both with client-side routing and a non-root public URL.
+      Learn how to configure a non-root public URL by running `npm run build`.
+    -->
+    <title>ChargeDB</title>
+  </head>
+  <body>
+    <noscript>
+      You need to enable JavaScript to run this app.
+    </noscript>
+    <script>
+      function testSendCommand(e){
+        LiteMolChargesViewerEventQueue.send("lm-load-molecule", {
+          structure_url: e.getAttribute('data-surl'), // Structure URL
+          charges_url: e.getAttribute('data-churl'),  // Charges file URL
+          structure_format: e.getAttribute('data-stype'), // Structure file format
+          charges_format: e.getAttribute('data-chtype') // Charges file format
+        });
+      }
+    </script>
+    <div id="root"></div>
+    <!--
+      This HTML file is a template.
+      If you open it directly in the browser, you will see an empty page.
+
+      You can add webfonts, meta tags, or analytics to this file.
+      The build step will place the bundled scripts into the <body> tag.
+
+      To begin the development, run `npm start` or `yarn start`.
+      To create a production bundle, use `npm run build` or `yarn build`.
+    -->
+    <div id="controls">
+      <button 
+        data-surl="http://147.251.255.54/files_sb/structures/56613.sdf" 
+        data-churl="http://147.251.255.54//api/files/calculated-charges/52908/mol2"
+        data-stype="SDF"
+        data-chtype="MOL2"
+        onclick="testSendCommand(this);"
+      >000 - SDF/MOL2 (Gasteiger-Marsili)</button>
+      <button 
+        data-surl="http://147.251.255.54/files_sb/structures/56613.sdf" 
+        data-churl="http://147.251.255.54//api/files/calculated-charges/52908/chg"
+        data-stype="SDF"
+        data-chtype="CHG"
+        onclick="testSendCommand(this);"
+      >000 - SDF/CHG  (Gasteiger-Marsili)</button>
+      <button 
+        data-surl="http://147.251.255.54/files_sb/structures/56613.sdf" 
+        data-churl="http://147.251.255.54//api/files/calculated-charges/6220/mol2"
+        data-stype="SDF"
+        data-chtype="MOL2"
+        onclick="testSendCommand(this);"
+      >000 - SDF/MOL2 (Cheminf_hf_npa)</button>
+      <button 
+        data-surl="http://147.251.255.54/files_sb/structures/56613.sdf" 
+        data-churl="http://147.251.255.54//api/files/calculated-charges/6220/chg"
+        data-stype="SDF"
+        data-chtype="CHG"
+        onclick="testSendCommand(this);"
+      >000 - SDF/CHG  (Cheminf_hf_npa)</button>
+      |
+      <button 
+        data-surl="http://147.251.255.54/files_sb/structures/56615.sdf" 
+        data-churl="http://147.251.255.54//api/files/calculated-charges/52914/mol2"
+        data-stype="SDF"
+        data-chtype="MOL2"
+        onclick="testSendCommand(this);"
+      >001 - SDF/MOL2 (EEM - Gasteiger-Marsili)</button>
+      <button 
+        data-surl="http://147.251.255.54/files_sb/structures/56615.sdf" 
+        data-churl="http://147.251.255.54//api/files/calculated-charges/52914/chg"
+        data-stype="SDF"
+        data-chtype="CHG"
+        onclick="testSendCommand(this);"
+      >001 - SDF/CHG (EEM - Gasteiger-Marsili)</button>
+      <button 
+        data-surl="http://147.251.255.54/files_sb/structures/56615.sdf" 
+        data-churl="http://147.251.255.54//api/files/calculated-charges/6222/mol2"
+        data-stype="SDF"
+        data-chtype="MOL2"
+        onclick="testSendCommand(this);"
+      >001 - SDF/MOL2 (EEM - Cheminf_hf_npa)</button>
+      <button 
+        data-surl="http://147.251.255.54/files_sb/structures/56615.sdf" 
+        data-churl="http://147.251.255.54//api/files/calculated-charges/6222/chg"
+        data-stype="SDF"
+        data-chtype="CHG"
+        onclick="testSendCommand(this);"
+      >001 - SDF/CHG (EEM - Cheminf_hf_npa)</button>
+      |
+      <button 
+        data-surl="http://147.251.255.54/files_sb/structures/56619.sdf" 
+        data-churl="http://147.251.255.54//api/files/calculated-charges/52914/mol2"
+        data-stype="SDF"
+        data-chtype="MOL2"
+        onclick="testSendCommand(this);"
+      >003 - SDF/MOL2 (Gasteiger-Marsili)</button>
+      <button 
+        data-surl="http://147.251.255.54/files_sb/structures/56619.sdf" 
+        data-churl="http://147.251.255.54//api/files/calculated-charges/52914/chg"
+        data-stype="SDF"
+        data-chtype="CHG"
+        onclick="testSendCommand(this);"
+      >003 - SDF/CHG (Gasteiger-Marsili)</button>
+      <button 
+        data-surl="http://147.251.255.54/files_sb/structures/56619.sdf" 
+        data-churl="http://147.251.255.54//api/files/calculated-charges/6226/mol2"
+        data-stype="SDF"
+        data-chtype="MOL2"
+        onclick="testSendCommand(this);"
+      >003 - SDF/MOL2 (Cheminf_hf_npa)</button>
+      <button 
+        data-surl="http://147.251.255.54/files_sb/structures/56619.sdf" 
+        data-churl="http://147.251.255.54//api/files/calculated-charges/6226/chg"
+        data-stype="SDF"
+        data-chtype="CHG"
+        onclick="testSendCommand(this);"
+      >003 - SDF/CHG (Cheminf_hf_npa)</button>
+    </div>
+    <script type="text/javascript" src="%PUBLIC_URL%/LiteMol-plugin.min.js"></script>
+  </body>
+</html>
