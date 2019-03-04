@@ -10,7 +10,7 @@
     -->
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json">
     <link rel="shortcut icon" href="%PUBLIC_URL%/favicon.ico">
-    <link rel="stylesheet" href="%PUBLIC_URL%/bootstrap.min.css">
+<!--    <link rel="stylesheet" href="%PUBLIC_URL%/bootstrap.min.css">-->
     <!--
       Notice the use of %PUBLIC_URL% in the tags above.
       It will be replaced with the URL of the `public` folder during the build.
@@ -20,7 +20,7 @@
       work correctly both with client-side routing and a non-root public URL.
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
-    <title>ChargeDB</title>
+    <title>LiteMolChargesViewer</title>
   </head>
   <body>
     <noscript>
@@ -134,7 +134,36 @@
         data-chtype="CHG"
         onclick="testSendCommand(this);"
       >003 - SDF/CHG (Cheminf_hf_npa)</button>
+      |
+      <button 
+        data-surl="http://waldemar.dominiktousek.eu:8181/share/1jj1.pdb" 
+        data-churl="http://waldemar.dominiktousek.eu:8181/share/1jj1.mol2"
+        data-stype="PDB"
+        data-chtype="MOL2"
+        onclick="testSendCommand(this);"
+      >1jj1 - default obabel charges (PDB->mol2)</button>
+      <button
+        id="autoloaded" 
+        data-surl="http://waldemar.dominiktousek.eu:8181/share/5an8.pdb" 
+        data-churl="http://waldemar.dominiktousek.eu:8181/share/5an8.mol2"
+        data-stype="PDB"
+        data-chtype="MOL2"
+        onclick="testSendCommand(this);"
+      >5an8 - default obabel charges (PDB->mol2)</button>
+      <button 
+        data-surl="http://waldemar.dominiktousek.eu:8181/share/1tqn.pdb" 
+        data-churl="http://waldemar.dominiktousek.eu:8181/share/1tqn.mol2"
+        data-stype="PDB"
+        data-chtype="MOL2"
+        onclick="testSendCommand(this);"
+      >1tqn - default obabel charges (PDB->mol2)</button>
     </div>
     <script type="text/javascript" src="%PUBLIC_URL%/LiteMol-plugin.min.js"></script>
+    <script>
+      window.onload = ()=>{
+        setTimeout(()=>{
+          document.getElementById("autoloaded").click();
+      },1000)};
+    </script>
   </body>
 </html>

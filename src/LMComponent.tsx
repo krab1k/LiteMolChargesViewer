@@ -19,6 +19,8 @@ import './ext/LiteMol/fonts/fontello.woff2';
 import './ext/LiteMol/fonts/fontello.eot';
 import './ext/LiteMol/fonts/fontello.svg';
 
+let DEBUG=false;
+
 interface Props{
     conformationId: number | null;
 }
@@ -43,10 +45,8 @@ export class LiteMolContainer extends React.Component<Props,any>{
         LMState.loadData(plugin, params.structure_url, params.charges_url, 
             params.structure_format, params.charges_format).then(val=>{
                 EventQueue.send(Events.LM_MOLECULE_LOADED);
-                // TODO: handle success
         }).catch(e=>{
-            // TODO: handle error
-            console.log(e);
+            console.error(e);
         });
     }
 
@@ -78,9 +78,11 @@ export class LiteMolContainer extends React.Component<Props,any>{
 
         EventQueue.send(Events.LM_START);
 
-        let itm = document.getElementsByClassName("lm-icon-tools").item(0);
-        if(itm !== null && itm.parentElement !== null){
-            itm.parentElement.style.setProperty("display", "none");
+        if(!DEBUG){
+            let itm = document.getElementsByClassName("lm-icon-tools").item(0);
+            if(itm !== null && itm.parentElement !== null){
+                itm.parentElement.style.setProperty("display", "none");
+            }
         }
     }
 

@@ -6,18 +6,100 @@ export namespace LMState {
 
     export interface SurfaceTag { type: string; element?: any; }
 
+    let themeColorSettings = {
+        minColor: LiteMol.Visualization.Color.fromRgb(255,0,0),
+        maxColor: LiteMol.Visualization.Color.fromRgb(0,0,255),
+        minVal: -1,
+        maxVal: 1,
+        centerAbsolute: true,
+        centerPosition: 0,
+        maxColorMiddle: LiteMol.Visualization.Color.fromRgb(255,255,255),
+        minColorMiddle: LiteMol.Visualization.Color.fromRgb(255,255,255),
+        skipMiddle: false
+    };
+
+    export function roundTo4Positions(nmbr:number){
+        let o = (Math.ceil(Number(nmbr)*10000)/10000);
+        return o;
+    }
+
     function applyTheme(theme:LiteMol.Visualization.Theme, plugin:LiteMol.Plugin.Controller, ref: string){
-        LiteMol.Bootstrap.Command.Visual.ResetScene.getStream(plugin.context).subscribe((val)=>{
-            LiteMol.Bootstrap.Command.Visual.UpdateBasicTheme.dispatch(plugin.context, { 
-                visual: plugin.context.select(ref)[0] as any, theme
-            });
-        });
         LiteMol.Bootstrap.Command.Visual.UpdateBasicTheme.dispatch(plugin.context, { 
             visual: plugin.context.select(ref)[0] as any, theme
         });
     }
 
-    function generateColorTheme(charges: number[]){
+    function createTheme(colors:Map<number, LiteMol.Visualization.Color>){
+        let theme = LiteMol.Visualization.Theme.createMapping(LiteMol.Visualization.Theme.createColorMapMapping(
+            (idx:number)=>{
+                if(!colors.has(idx)){
+                    return void 0;
+                }
+                return idx;
+            },
+            colors,
+            LiteMol.Visualization.Color.fromRgb(0,255,0)
+        ));
+        theme.isSticky = true;
+        return theme; 
+    }
+
+    function generateColorThemeCartoons(plugin: LiteMol.Plugin.Controller, charges: number[]){
+        let colors = new Map<number, LiteMol.Visualization.Color>();       
+
+        let minVal = 0;
+        let maxVal = 0;
+        let residueCharges = new Map<number, number>();
+        let residueChargesIdxMapping = new Map<number, number>();
+        
+        plugin.context.tree.refs.forEach((v,k,ctx)=>{
+            if("molecule" in v[0].props){
+                let data = (v[0].props as any).molecule.models[0].data;
+                let residueData = data.residues;
+                for(let i = 0;i<residueData.count;i++){
+                    let atomStartIdx = residueData.atomStartIndex[i];
+                    let atomEndIdx = residueData.atomEndIndex[i];
+                    let finalCharge = 0;
+                    
+                    for(let aIdx=atomStartIdx; aIdx<atomEndIdx; aIdx++){
+                        finalCharge += charges[aIdx];
+                    }
+
+                    if(isNaN(finalCharge)){
+                        continue;
+                    }
+                    finalCharge = roundTo4Positions(finalCharge / (atomEndIdx-atomStartIdx));
+
+                    minVal = Math.min(minVal, finalCharge);
+                    maxVal = Math.max(maxVal, finalCharge);
+
+                    residueCharges.set(atomStartIdx, finalCharge);
+                    for(let aIdx=atomStartIdx; aIdx<atomEndIdx; aIdx++){
+                        residueChargesIdxMapping.set(aIdx, finalCharge);
+                    }
+                }
+            }
+        });
+
+        let bound = Math.max(maxVal, Math.abs(minVal));
+        themeColorSettings.minVal = -bound;
+        themeColorSettings.maxVal = bound;
+
+        SharedStorage.set("RESIDUE-CHARGES", residueCharges);
+
+        residueChargesIdxMapping.forEach((v,k,m)=>{
+            let chg = v;
+            if(isNaN(chg)){
+                return;
+            }
+            let color = getColor(chg, themeColorSettings);
+            colors.set(k, color);
+        });
+       
+        return createTheme(colors);        
+    } 
+
+    function generateColorTheme(plugin: LiteMol.Plugin.Controller, charges: number[]){
         let colors = new Map<number, LiteMol.Visualization.Color>();       
         let minVal = charges.reduce((pv,cv,ci,a)=>{
             return Math.min(cv, pv);
@@ -25,31 +107,23 @@ export namespace LMState {
         let maxVal = charges.reduce((pv,cv,ci,a)=>{
             return Math.max(cv, pv);
         });
+
+        let bound = Math.max(maxVal, Math.abs(minVal));
+        themeColorSettings.minVal = -bound;
+        themeColorSettings.maxVal = bound;
+
+        let indices = (plugin.selectEntities("molecule-het")[0].props as any).model.entity.props.indices;
         
-        for(let i=0;i<charges.length;i++){
-            let chg = charges[i];
-            let color = getColor(chg, {
-                minColor: LiteMol.Visualization.Color.fromRgb(255,0,0),
-                maxColor: LiteMol.Visualization.Color.fromRgb(0,0,255),
-                minVal,
-                maxVal,
-                centerAbsolute: true,
-                centerPosition: 0,
-                maxColorMiddle: LiteMol.Visualization.Color.fromRgb(255,255,255),
-                minColorMiddle: LiteMol.Visualization.Color.fromRgb(255,255,255),
-                skipMiddle: false
-            });
-            colors.set(i, color);
+        for(let i=0;i<indices.length;i++){
+            let chg = charges[indices[i]];
+            if(isNaN(chg)){
+                continue;
+            }
+            let color = getColor(chg, themeColorSettings);
+            colors.set(indices[i], color);
         }
 
-        let theme = LiteMol.Visualization.Theme.createMapping(LiteMol.Visualization.Theme.createColorMapMapping(
-                (idx:number)=>{
-                    return idx;
-                },
-                colors,
-                LiteMol.Visualization.Color.fromRgb(255,255,255)
-            ));
-         return theme;            
+        return createTheme(colors);          
     } 
 
     interface ColorPaletteFunctionSettings{
@@ -77,11 +151,13 @@ export namespace LMState {
         var rgb = LiteMol.Visualization.Color.fromRgb(255,255,255);
 
         if(value<(minVal+maxVal)/2){
-            let t = (value - minVal) / (middle - minVal);
+            let d = (middle - minVal);
+            let t = (value - minVal) / ((d!==0)?d:1);
             LiteMol.Visualization.Color.interpolate(minColor, maxColorMiddle, t, rgb);
         }
         else{
-            let t = (value - middle) / (maxVal - middle);
+            let d = (maxVal - middle);
+            let t = (value - middle) / ((d!==0)?d:1);
             LiteMol.Visualization.Color.interpolate(minColorMiddle, maxColor, t, rgb);
         }
 
@@ -90,7 +166,8 @@ export namespace LMState {
                 + "skipMiddle=true && centerAbsolute=true");
         }
         if(skipMiddle&&!settings.centerAbsolute){
-            let t = (value - minVal) / (maxVal - minVal);
+            let d = (maxVal - minVal);
+            let t = (value - minVal) / ((d!==0)?d:1);
             LiteMol.Visualization.Color.interpolate(minColor, maxColor, t, rgb);
         }
 
@@ -189,27 +266,32 @@ export namespace LMState {
                 .then(Transformer.Molecule.CreateModel, { modelIndex: 0 })
                 .then(Transformer.Molecule.CreateMacromoleculeVisual, 
                     { 
-                        polymer: false, 
-                        het: true,
+                        polymer: true, polymerRef: 'polymer-visual', het: true,
                         hetRef: 'molecule-het'
                     });
-                    
+                                    
             plugin.applyTransform(model)
                 .then(() => {
                     if(plugin.instance === void 0){
                         rej("Loading data interupted due to redraw.");
                         return;
                     }
-                    if(plugin.context.select('molecule-het').length!==1){
+                    let hasHet = (plugin.context.select('molecule-het').length>0);
+                    let hasPolymer = (plugin.context.select('polymer-visual').length>0);
+                    if((!hasHet) && !hasPolymer){
                         rej("Application was unable to retrieve protein structure file.");
                     }
-                    else{                        
+                    else{      
                         loadCharges(chargesUrl).then(v=>{
-                            
                             let charges = parseCharges(v, chargesFormat);
                             if(charges !== void 0){
                                 SharedStorage.set("CHARGES", charges);
-                                applyTheme(generateColorTheme(charges), plugin, 'molecule-het');
+                                if(hasHet){
+                                    applyTheme(generateColorTheme(plugin, charges), plugin, 'molecule-het');
+                                }
+                                if(hasPolymer){
+                                    applyTheme(generateColorThemeCartoons(plugin, charges), plugin, 'polymer-visual');
+                                }
                             }
                         });
                         

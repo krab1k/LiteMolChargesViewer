@@ -9,6 +9,7 @@ import Bootstrap = LiteMol.Bootstrap;
 import Transformer = Bootstrap.Entity.Transformer;    
 import LayoutRegion = Bootstrap.Components.LayoutRegion;
 import { SharedStorage } from './SharedStorage';
+import { LMState } from './State';
 
 /**
  * Support for custom highlight tooltips.
@@ -18,11 +19,37 @@ export function HighlightCustomElements(context: Bootstrap.Context) {
         if(info.kind !== 1 || (info as any).elements === void 0 || (info as any).elements.length === 0){
             return void 0;
         }
-        if(!SharedStorage.has("CHARGES")){
-            return void 0;
+        if((info as any).source.ref==="molecule-het"){
+            if(!SharedStorage.has("CHARGES")){
+                return void 0;
+            }
+            let charges = SharedStorage.get("CHARGES");
+            let chg = charges[(info as any).elements[0]];
+
+            if (isNaN(chg)){
+                return `<b>Charge</b>: (not available)`;
+            }
+
+            return `<b>Charge</b>: ${Number().toFixed(4)}`;
         }
-        let charges = SharedStorage.get("CHARGES");
-        return `<b>Charge</b>: ${Number(charges[(info as any).elements[0]]).toFixed(4)}`;
+        if((info as any).source.ref==="polymer-visual"){
+            if(!SharedStorage.has("RESIDUE-CHARGES")){
+                return void 0;
+            }
+            let charges = SharedStorage.get("RESIDUE-CHARGES");
+            let idxStart = (info as any).elements
+                .reduce((p:number,c:number,ci:number,a:number[])=>{return Math.min(p, c);});
+            let finalCharge = charges.get(idxStart);
+            finalCharge = LMState.roundTo4Positions(finalCharge / (info as any).elements.length);
+            
+            if (isNaN(finalCharge)){
+                return `<b>Charge</b>: (not available)`;
+            }
+            
+            return `<b>Charge</b>: ${finalCharge}`;
+        }
+
+        return "";
     });        
 }
 
