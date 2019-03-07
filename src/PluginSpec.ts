@@ -30,7 +30,7 @@ export function HighlightCustomElements(context: Bootstrap.Context) {
                 return `<b>Charge</b>: (not available)`;
             }
 
-            return `<b>Charge</b>: ${Number().toFixed(4)}`;
+            return `<b>Charge</b>: ${Number(chg).toFixed(4)}`;
         }
         if((info as any).source.ref==="polymer-visual"){
             if(!SharedStorage.has("RESIDUE-CHARGES")){

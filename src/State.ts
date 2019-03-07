@@ -1,4 +1,5 @@
 import { SharedStorage } from "./SharedStorage";
+import { EventQueue, Events } from "./EventQueue";
 
 export namespace LMState {
 
@@ -6,11 +7,11 @@ export namespace LMState {
 
     export interface SurfaceTag { type: string; element?: any; }
 
-    let themeColorSettings = {
+    let DEFAULT_THEME_COLOR_SETTINGS: ColorPaletteFunctionSettings = {
         minColor: LiteMol.Visualization.Color.fromRgb(255,0,0),
         maxColor: LiteMol.Visualization.Color.fromRgb(0,0,255),
-        minVal: -1,
-        maxVal: 1,
+        minVal: null,
+        maxVal: null,
         centerAbsolute: true,
         centerPosition: 0,
         maxColorMiddle: LiteMol.Visualization.Color.fromRgb(255,255,255),
@@ -29,7 +30,27 @@ export namespace LMState {
         });
     }
 
+    interface UserRGBColor {
+        r: number;
+        g: number;
+        b: number;
+    }
+
+    function userRGBtoLMRGB(uRGB:UserRGBColor) {
+        return LiteMol.Visualization.Color.fromRgb(uRGB.r, uRGB.g, uRGB.b);
+    }
+
     function createTheme(colors:Map<number, LiteMol.Visualization.Color>){
+        let fallbackcolor:UserRGBColor = {
+            r: 0,
+            g: 255,
+            b: 0
+        };
+        let userColorSettings = SharedStorage.get("THEME_COLOR_SETTINGS");
+        if(userColorSettings !== void 0 && userColorSettings.fallbackColor !== void 0){
+            fallbackcolor = userColorSettings.fallbackColor;
+        }
+
         let theme = LiteMol.Visualization.Theme.createMapping(LiteMol.Visualization.Theme.createColorMapMapping(
             (idx:number)=>{
                 if(!colors.has(idx)){
@@ -38,10 +59,21 @@ export namespace LMState {
                 return idx;
             },
             colors,
-            LiteMol.Visualization.Color.fromRgb(0,255,0)
+            userRGBtoLMRGB(fallbackcolor)
         ));
         theme.isSticky = true;
         return theme; 
+    }
+
+    function getLMMoleculeProps(plugin: LiteMol.Plugin.Controller):null|any{
+        let data = null;
+        plugin.context.tree.refs.forEach((v,k,ctx)=>{
+            if("molecule" in v[0].props){
+                data = (v[0].props as any).molecule.models[0].data;
+            }
+        });
+
+        return data;
     }
 
     function generateColorThemeCartoons(plugin: LiteMol.Plugin.Controller, charges: number[]){
@@ -52,40 +84,37 @@ export namespace LMState {
         let residueCharges = new Map<number, number>();
         let residueChargesIdxMapping = new Map<number, number>();
         
-        plugin.context.tree.refs.forEach((v,k,ctx)=>{
-            if("molecule" in v[0].props){
-                let data = (v[0].props as any).molecule.models[0].data;
-                let residueData = data.residues;
-                for(let i = 0;i<residueData.count;i++){
-                    let atomStartIdx = residueData.atomStartIndex[i];
-                    let atomEndIdx = residueData.atomEndIndex[i];
-                    let finalCharge = 0;
-                    
-                    for(let aIdx=atomStartIdx; aIdx<atomEndIdx; aIdx++){
-                        finalCharge += charges[aIdx];
-                    }
-
-                    if(isNaN(finalCharge)){
-                        continue;
-                    }
-                    finalCharge = roundTo4Positions(finalCharge / (atomEndIdx-atomStartIdx));
-
-                    minVal = Math.min(minVal, finalCharge);
-                    maxVal = Math.max(maxVal, finalCharge);
-
-                    residueCharges.set(atomStartIdx, finalCharge);
-                    for(let aIdx=atomStartIdx; aIdx<atomEndIdx; aIdx++){
-                        residueChargesIdxMapping.set(aIdx, finalCharge);
-                    }
-                }
+        let data = getLMMoleculeProps(plugin);
+        if(data === null){
+            throw new Error("LiteMol element tree is not initialized yet!");
+        }
+        let residueData = data.residues;
+        for(let i = 0;i<residueData.count;i++){
+            let atomStartIdx = residueData.atomStartIndex[i];
+            let atomEndIdx = residueData.atomEndIndex[i];
+            let finalCharge = 0;
+            
+            for(let aIdx=atomStartIdx; aIdx<atomEndIdx; aIdx++){
+                finalCharge += charges[aIdx];
             }
-        });
 
-        let bound = Math.max(maxVal, Math.abs(minVal));
-        themeColorSettings.minVal = -bound;
-        themeColorSettings.maxVal = bound;
+            if(isNaN(finalCharge)){
+                continue;
+            }
+            finalCharge = roundTo4Positions(finalCharge / (atomEndIdx-atomStartIdx));
+
+            minVal = Math.min(minVal, finalCharge);
+            maxVal = Math.max(maxVal, finalCharge);
+
+            residueCharges.set(atomStartIdx, finalCharge);
+            for(let aIdx=atomStartIdx; aIdx<atomEndIdx; aIdx++){
+                residueChargesIdxMapping.set(aIdx, finalCharge);
+            }
+        }
 
         SharedStorage.set("RESIDUE-CHARGES", residueCharges);
+
+        let themeColorSettings = getAndAdaptColorSettings(minVal, maxVal);
 
         residueChargesIdxMapping.forEach((v,k,m)=>{
             let chg = v;
@@ -99,6 +128,47 @@ export namespace LMState {
         return createTheme(colors);        
     } 
 
+    function getAndAdaptColorSettings(minVal:number, maxVal:number){
+        let themeColorSettings:ColorPaletteFunctionSettingsFromUser = SharedStorage.get("THEME_COLOR_SETTINGS");
+        if(themeColorSettings === void 0){
+            themeColorSettings = DEFAULT_THEME_COLOR_SETTINGS;
+        }
+
+        let cloned:ColorPaletteFunctionSettings = {
+            centerAbsolute: DEFAULT_THEME_COLOR_SETTINGS.centerAbsolute,
+            centerPosition: DEFAULT_THEME_COLOR_SETTINGS.centerPosition,
+            maxColor: (themeColorSettings.maxColor === void 0)
+                ? DEFAULT_THEME_COLOR_SETTINGS.maxColor
+                : userRGBtoLMRGB(themeColorSettings.maxColor),
+            minColor: (themeColorSettings.minColor === void 0)
+                ? DEFAULT_THEME_COLOR_SETTINGS.minColor
+                : userRGBtoLMRGB(themeColorSettings.minColor),
+            minVal: (themeColorSettings.minVal === void 0)
+                ? DEFAULT_THEME_COLOR_SETTINGS.minVal
+                : themeColorSettings.minVal,
+            maxVal: (themeColorSettings.maxVal === void 0)
+                ? DEFAULT_THEME_COLOR_SETTINGS.maxVal
+                : themeColorSettings.maxVal,
+            minColorMiddle: (themeColorSettings.middleColor === void 0)
+                ? DEFAULT_THEME_COLOR_SETTINGS.minColorMiddle
+                : userRGBtoLMRGB(themeColorSettings.middleColor),
+            maxColorMiddle: (themeColorSettings.middleColor === void 0)
+                ? DEFAULT_THEME_COLOR_SETTINGS.maxColorMiddle
+                : userRGBtoLMRGB(themeColorSettings.middleColor),
+            skipMiddle: DEFAULT_THEME_COLOR_SETTINGS.skipMiddle
+        };
+
+        let bound = Math.max(maxVal, Math.abs(minVal));
+        if(themeColorSettings.minVal===null){
+            cloned.minVal = -bound;
+        }
+        if(themeColorSettings.maxVal===null){
+            cloned.maxVal = bound;
+        }
+
+        return cloned;
+    }
+
     function generateColorTheme(plugin: LiteMol.Plugin.Controller, charges: number[]){
         let colors = new Map<number, LiteMol.Visualization.Color>();       
         let minVal = charges.reduce((pv,cv,ci,a)=>{
@@ -109,11 +179,12 @@ export namespace LMState {
         });
 
         let bound = Math.max(maxVal, Math.abs(minVal));
-        themeColorSettings.minVal = -bound;
-        themeColorSettings.maxVal = bound;
+        DEFAULT_THEME_COLOR_SETTINGS.minVal = -bound;
+        DEFAULT_THEME_COLOR_SETTINGS.maxVal = bound;
 
         let indices = (plugin.selectEntities("molecule-het")[0].props as any).model.entity.props.indices;
-        
+
+        let themeColorSettings = getAndAdaptColorSettings(minVal, maxVal);
         for(let i=0;i<indices.length;i++){
             let chg = charges[indices[i]];
             if(isNaN(chg)){
@@ -126,9 +197,18 @@ export namespace LMState {
         return createTheme(colors);          
     } 
 
+    interface ColorPaletteFunctionSettingsFromUser{
+        minVal?:number|null;
+        maxVal?:number|null;
+        minColor?: UserRGBColor;
+        maxColor?: UserRGBColor;
+        middleColor?: UserRGBColor;
+        fallbackColor?: UserRGBColor;
+    }
+
     interface ColorPaletteFunctionSettings{
-        minVal:number;
-        maxVal:number;
+        minVal:number|null;
+        maxVal:number|null;
         minColor: LiteMol.Visualization.Color;
         maxColor: LiteMol.Visualization.Color;
         minColorMiddle: LiteMol.Visualization.Color;
@@ -139,8 +219,8 @@ export namespace LMState {
     }
 
     function getColor(value: number, settings: ColorPaletteFunctionSettings){
-        let minVal = settings.minVal;
-        let maxVal = settings.maxVal;
+        let minVal = (settings.minVal===null)?-1:settings.minVal;
+        let maxVal = (settings.maxVal===null)?1:settings.maxVal;
         let minColor = settings.minColor;
         let maxColor = settings.maxColor;
         let minColorMiddle = settings.minColorMiddle;
@@ -245,6 +325,20 @@ export namespace LMState {
         return charges;
     }
 
+    function checkChargesCount(charges: number[], plugin: LiteMol.Plugin.Controller){
+        let data = getLMMoleculeProps(plugin);
+        if(data === null){
+            return;
+        }
+
+        if(data.atoms.count !== charges.length){
+            EventQueue.send(Events.LM_INCOMPLETE_CHARGES_ERROR, {
+                atomCount: data.atoms.count,
+                chargesCount: charges.length
+            });
+        }
+    }
+
     export function loadData(plugin: LiteMol.Plugin.Controller, structureUrl: string, 
             chargesUrl: string, structureFormat: SupportedFormat, chargesFormat: SupportedChargesFormat) {
         plugin.clear();
@@ -285,6 +379,7 @@ export namespace LMState {
                         loadCharges(chargesUrl).then(v=>{
                             let charges = parseCharges(v, chargesFormat);
                             if(charges !== void 0){
+                                checkChargesCount(charges, plugin);
                                 SharedStorage.set("CHARGES", charges);
                                 if(hasHet){
                                     applyTheme(generateColorTheme(plugin, charges), plugin, 'molecule-het');
