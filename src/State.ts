@@ -210,6 +210,7 @@ export namespace LMState {
         switch(format){
             case "CHG": return parseCHG(contents);
             case "MOL2": return parseMOL2(contents);
+            case "TXT": return parseTXT(contents);
             default: throw new Error(`Format ${format} is not supported!`);
         }
     }
@@ -242,6 +243,16 @@ export namespace LMState {
             charges.push(Number(parts[8]));
         }
 
+        return charges;
+    }
+
+    function parseTXT(contents:string) {
+        let lines = contents.split("\n");
+        let chgLine = lines[1];
+        let charges = [];
+        for(let l of chgLine.split(/\s+/)) {
+            charges.push(Number(l));
+        }
         return charges;
     }
 
@@ -313,4 +324,4 @@ export namespace LMState {
 
 export type SupportedFormat = "SDF" | "mmBCIF" | "mmCIF" | "PDB";
 
-export type SupportedChargesFormat = "CHG" | "MOL2";
+export type SupportedChargesFormat = "CHG" | "MOL2" | "TXT";
