@@ -79,18 +79,18 @@
       |
       <button 
         data-surl="http://147.251.255.54/files_sb/structures/56615.sdf" 
-        data-churl="http://147.251.255.54//api/files/calculated-charges/52914/mol2"
+        data-churl="http://147.251.255.54//api/files/calculated-charges/52910/mol2"
         data-stype="SDF"
         data-chtype="MOL2"
         onclick="testSendCommand(this);"
-      >001 - SDF/MOL2 (EEM - Gasteiger-Marsili)</button>
+      >001 - SDF/MOL2 (Gasteiger-Marsili)</button>
       <button 
         data-surl="http://147.251.255.54/files_sb/structures/56615.sdf" 
-        data-churl="http://147.251.255.54//api/files/calculated-charges/52914/chg"
+        data-churl="http://147.251.255.54//api/files/calculated-charges/52910/chg"
         data-stype="SDF"
         data-chtype="CHG"
         onclick="testSendCommand(this);"
-      >001 - SDF/CHG (EEM - Gasteiger-Marsili)</button>
+      >001 - SDF/CHG (Gasteiger-Marsili)</button>
       <button 
         data-surl="http://147.251.255.54/files_sb/structures/56615.sdf" 
         data-churl="http://147.251.255.54//api/files/calculated-charges/6222/mol2"
@@ -157,13 +157,53 @@
         data-chtype="MOL2"
         onclick="testSendCommand(this);"
       >1tqn - default obabel charges (PDB->mol2)</button>
+      |
+      <button 
+        data-surl="http://147.251.255.54/files_sb/structures/56615.sdf" 
+        data-churl="http://147.251.255.54//api/files/calculated-charges/52914/chg"
+        data-stype="SDF"
+        data-chtype="CHG"
+        onclick="testSendCommand(this);"
+      >001 - incompatible charges</button>
     </div>
     <script type="text/javascript" src="%PUBLIC_URL%/LiteMol-plugin.min.js"></script>
     <script>
       window.onload = ()=>{
+
+        /*
+        interface ColorPaletteFunctionSettingsFromUser{
+          minVal?: number|null;    // minimum value boundary, null => minimal value of related charges set
+          maxVal?: number|null;    // maximum value boundary, null => maximal value of related charges set
+          minColor?: {r:number,g:number,b:number};  // value range: <0-255> - color of minimum value
+          maxColor?: {r:number,g:number,b:number};  // value range: <0-255> - color of maximum value
+          middleColor?: {r:number,g:number,b:number};  // value range: <0-255> - color of middle value
+          fallbackColor?: {r:number,g:number,b:number};  // value range: <0-255> - for coloring of atoms without charges
+        };  
+        */
+        LiteMolChargesViewerEventQueue.send("lm-set-default-color-scheme", {
+          minVal: -1,
+          maxVal: 1,
+          fallbackColor: {r: 0, g:255, b:0},
+          minColor: {r: 255, g:0, b:0},
+          maxColor: {r: 0, g:0, b:255},
+          middleColor: {r: 255, g:255, b:255}
+        });
+
+        /*
+        eventInfo: {
+          atomCount: data.atoms.count,
+          chargesCount: charges.length
+        }
+        */
+        LiteMolChargesViewerEventQueue.subscribe("lm-incomplete-charges-error", (eventInfo)=>{
+          console.error("Atom count and count of calculated charges does not match! Atom count: " + eventInfo.atomCount +" | Charges count: "+eventInfo.chargesCount);
+        });
+
+        // Auto-click and load choosen structure via button after page load
         setTimeout(()=>{
           document.getElementById("autoloaded").click();
-      },1000)};
+        },1000);
+      };
     </script>
   </body>
 </html>

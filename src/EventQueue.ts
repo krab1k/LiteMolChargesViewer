@@ -51,5 +51,7 @@ export enum Events{
     LM_START="lm-start",
     LM_STOP="lm-stop",
     LM_MOLECULE_LOADED="lm-molecule-loaded",
-    LM_LOAD_MOLECULE="lm-load-molecule"
+    LM_LOAD_MOLECULE="lm-load-molecule",
+    LM_SET_DEFAULT_COLOR_SCHEME="lm-set-default-color-scheme",
+    LM_INCOMPLETE_CHARGES_ERROR="lm-incomplete-charges-error"
 }
