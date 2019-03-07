@@ -178,10 +178,6 @@ export namespace LMState {
             return Math.max(cv, pv);
         });
 
-        let bound = Math.max(maxVal, Math.abs(minVal));
-        DEFAULT_THEME_COLOR_SETTINGS.minVal = -bound;
-        DEFAULT_THEME_COLOR_SETTINGS.maxVal = bound;
-
         let indices = (plugin.selectEntities("molecule-het")[0].props as any).model.entity.props.indices;
 
         let themeColorSettings = getAndAdaptColorSettings(minVal, maxVal);
