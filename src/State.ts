@@ -388,12 +388,15 @@ export namespace LMState {
                             if(charges !== void 0){
                                 checkChargesCount(charges, plugin);
                                 SharedStorage.set("CHARGES", charges);
+                                /*
                                 if(hasHet){
                                     applyTheme(generateColorTheme(plugin, charges), plugin, 'molecule-het');
                                 }
                                 if(hasPolymer){
                                     applyTheme(generateColorThemeCartoons(plugin, charges), plugin, 'polymer-visual');
                                 }
+                                */
+                               generateThemes();
                             }
                         });
                         
@@ -410,6 +413,30 @@ export namespace LMState {
         promises.push(modelLoadPromise);
 
         return Promise.all(promises);
+    }
+
+    export function generateThemes(plugin?:LiteMol.Plugin.Controller){
+        if(plugin === void 0){
+            plugin = SharedStorage.get("LM-PLUGIN");
+        }
+        if(plugin === void 0){
+            console.warn("There is no plugin instance available for rendering theme. Skipping theme generation...");
+            return;
+        }
+        let charges = SharedStorage.get("CHARGES");
+        if(charges === void 0){
+            console.warn("No charges has been loaded! Skipping theme generation...");
+            return;
+        }
+
+        let hasHet = (plugin.context.select('molecule-het').length>0);
+        let hasPolymer = (plugin.context.select('polymer-visual').length>0);
+        if(hasHet){
+            applyTheme(generateColorTheme(plugin, charges), plugin, 'molecule-het');
+        }
+        if(hasPolymer){
+            applyTheme(generateColorThemeCartoons(plugin, charges), plugin, 'polymer-visual');
+        }
     }
 }
 

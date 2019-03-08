@@ -76,7 +76,9 @@ export class LiteMolContainer extends React.Component<Props,any>{
             customSpecification: LMPluginSpec,
         });
 
-        EventQueue.send(Events.LM_START);
+        EventQueue.send(Events.LM_START, {
+            plugin: this.plugin
+        });
 
         if(!DEBUG){
             let itm = document.getElementsByClassName("lm-icon-tools").item(0);
