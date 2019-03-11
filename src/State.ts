@@ -388,14 +388,6 @@ export namespace LMState {
                             if(charges !== void 0){
                                 checkChargesCount(charges, plugin);
                                 SharedStorage.set("CHARGES", charges);
-                                /*
-                                if(hasHet){
-                                    applyTheme(generateColorTheme(plugin, charges), plugin, 'molecule-het');
-                                }
-                                if(hasPolymer){
-                                    applyTheme(generateColorThemeCartoons(plugin, charges), plugin, 'polymer-visual');
-                                }
-                                */
                                generateThemes();
                             }
                         });
@@ -425,7 +417,7 @@ export namespace LMState {
         }
         let charges = SharedStorage.get("CHARGES");
         if(charges === void 0){
-            console.warn("No charges has been loaded! Skipping theme generation...");
+            console.warn("No charges have been loaded! Skipping theme generation...");
             return;
         }
 

@@ -2,7 +2,6 @@
   "name": "litemol-charges-visualizer",
   "version": "0.1.0",
   "private": true,
-  "homepage": "/litemolchargesviewer",
   "dependencies": {
     "history": "^4.7.2",
     "react": "^16.2.0",
@@ -12,7 +11,9 @@
   },
   "scripts": {
     "start": "react-scripts-ts start",
+    "prebuild": "./scripts/expandEnv.sh",
     "build": "react-scripts-ts build",
+    "postbuild": "./scripts/postbuild.sh",
     "test": "react-scripts-ts test --env=jsdom",
     "eject": "react-scripts-ts eject"
   },
