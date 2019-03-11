@@ -1,5 +1,5 @@
-export CONTEXT_URL=/litemolchargesviewer/	# do not forget / at the start and in the end!
-# export CONTEXT_URL=/ # for use on root context
+# export CONTEXT_URL=/litemolchargesviewer/	# do not forget / at the start and in the end!
+export CONTEXT_URL=/ # for use on root context
 export ASSETS_PATH=static/litemol/assets	# do not add / at the start!
 if [ -z "${VERSION}" ]
 then
