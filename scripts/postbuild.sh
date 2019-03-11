@@ -39,6 +39,7 @@ mv ./static/media/fontello.*.woff ./static/media/fontello.woff
 
 rm ./service-worker.js
 rm ./asset-manifest.json
+rm ./LiteMol-plugin.min.js
 
 mv ./static ./tmp_static
 
