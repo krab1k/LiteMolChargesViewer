@@ -1,6 +1,6 @@
 # export CONTEXT_URL=/litemolchargesviewer/	# do not forget / at the start and in the end!
 export CONTEXT_URL=/ # for use on root context
-export ASSETS_PATH=static/litemol/assets	# do not add / at the start!
+export ASSETS_PATH=static/litemol/	# do not add / at the start!
 if [ -z "${VERSION}" ]
 then
 	export VERSION=r5.0	# set version here manualy

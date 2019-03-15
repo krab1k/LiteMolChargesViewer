@@ -20,8 +20,7 @@ export namespace LMState {
     };
 
     export function roundTo4Positions(nmbr:number){
-        let o = (Math.ceil(Number(nmbr)*10000)/10000);
-        return o;
+        return (Math.ceil(Number(nmbr) * 10000) / 10000);
     }
 
     function applyTheme(theme:LiteMol.Visualization.Theme, plugin:LiteMol.Plugin.Controller, ref: string){
@@ -224,7 +223,7 @@ export namespace LMState {
         let skipMiddle = settings.skipMiddle;
         let middle = (settings.centerAbsolute)?settings.centerPosition:(minVal+maxVal)/2;
 
-        var rgb = LiteMol.Visualization.Color.fromRgb(255,255,255);
+        const rgb = LiteMol.Visualization.Color.fromRgb(255, 255, 255);
 
         if(value<(minVal+maxVal)/2){
             let d = (middle - minVal);
