@@ -100,7 +100,6 @@ export namespace LMState {
             if(isNaN(finalCharge)){
                 continue;
             }
-            finalCharge = roundTo4Positions(finalCharge / (atomEndIdx-atomStartIdx));
 
             minVal = Math.min(minVal, finalCharge);
             maxVal = Math.max(maxVal, finalCharge);
