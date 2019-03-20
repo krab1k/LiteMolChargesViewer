@@ -366,7 +366,7 @@ export namespace LMState {
                 .then(Transformer.Molecule.CreateMacromoleculeVisual, 
                     { 
                         polymer: true, polymerRef: 'polymer-visual', het: true,
-                        hetRef: 'molecule-het'
+                        hetRef: 'molecule-het', water: true, waterRef: 'molecule-het'
                     });
                                     
             plugin.applyTransform(model)
