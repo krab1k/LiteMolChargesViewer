@@ -9,3 +9,7 @@ body {
   height:80px;
   width:100vw;
 }
+
+#root{
+  height: calc(100vh - 90px);
+}

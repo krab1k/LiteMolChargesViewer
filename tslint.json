@@ -1,4 +1,5 @@
 {
+    "memoryLimit": 4096,
     "extends": ["tslint-react"],
     "rules": {
         "align": [

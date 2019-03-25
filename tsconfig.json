@@ -19,6 +19,9 @@
     "noUnusedLocals": true,
     "experimentalDecorators": true
   },
+  "files": [
+    "src/*/**"
+  ],
   "exclude": [
     "node_modules",
     "build",
