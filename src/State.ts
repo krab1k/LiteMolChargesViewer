@@ -224,6 +224,10 @@ export namespace LMState {
 
         const rgb = LiteMol.Visualization.Color.fromRgb(255, 255, 255);
 
+        if(minVal === maxVal && minVal === 0){
+            return rgb;
+        }
+
         if(value<(minVal+maxVal)/2){
             let d = (middle - minVal);
             let t = (value - minVal) / ((d!==0)?d:1);
