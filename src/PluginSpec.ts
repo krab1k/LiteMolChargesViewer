@@ -40,7 +40,7 @@ export function HighlightCustomElements(context: Bootstrap.Context) {
             let idxStart = (info as any).elements
                 .reduce((p:number,c:number,ci:number,a:number[])=>{return Math.min(p, c);});
             let finalCharge = charges.get(idxStart);
-            finalCharge = LMState.roundTo4Positions(finalCharge / (info as any).elements.length);
+            finalCharge = LMState.roundTo4Positions(finalCharge);
             
             if (isNaN(finalCharge)){
                 return `<b>Charge</b>: (not available)`;
