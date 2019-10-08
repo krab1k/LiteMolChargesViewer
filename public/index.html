@@ -21,12 +21,16 @@
     </noscript>
     <script>
       function testSendCommand(e){
+        LiteMolChargesViewerEventQueue.send("lm-use-default-themes", {value: false});
         LiteMolChargesViewerEventQueue.send("lm-load-molecule", {
           structure_url: e.getAttribute('data-surl'), // Structure URL
           charges_url: e.getAttribute('data-churl'),  // Charges file URL
           structure_format: e.getAttribute('data-stype'), // Structure file format
           charges_format: e.getAttribute('data-chtype') // Charges file format
         });
+      }
+      function testSendCommandUseDefaultThemes(e){
+        LiteMolChargesViewerEventQueue.send("lm-use-default-themes", {value: true});
       }
     </script>
     <style>
@@ -47,87 +51,87 @@
     -->
     <div id="controls">
       <button 
-        data-surl="http://147.251.255.54/files_sb/structures/56613.sdf" 
-        data-churl="http://147.251.255.54//api/files/calculated-charges/52908/mol2"
+        data-surl="http://test.chargedb.dominiktousek.eu/files/structures/56613.sdf" 
+        data-churl="http://test.chargedb.dominiktousek.eu/api/files/calculated-charges/52908/mol2"
         data-stype="SDF"
         data-chtype="MOL2"
         onclick="testSendCommand(this);"
       >000 - SDF/MOL2 (Gasteiger-Marsili)</button>
       <button 
-        data-surl="http://147.251.255.54/files_sb/structures/56613.sdf" 
-        data-churl="http://147.251.255.54//api/files/calculated-charges/52908/chg"
+        data-surl="http://test.chargedb.dominiktousek.eu/files/structures/56613.sdf" 
+        data-churl="http://test.chargedb.dominiktousek.eu/api/files/calculated-charges/52908/chg"
         data-stype="SDF"
         data-chtype="CHG"
         onclick="testSendCommand(this);"
       >000 - SDF/CHG  (Gasteiger-Marsili)</button>
       <button 
-        data-surl="http://147.251.255.54/files_sb/structures/56613.sdf" 
-        data-churl="http://147.251.255.54//api/files/calculated-charges/6220/mol2"
+        data-surl="http://test.chargedb.dominiktousek.eu/files/structures/56613.sdf" 
+        data-churl="http://test.chargedb.dominiktousek.eu/api/files/calculated-charges/6220/mol2"
         data-stype="SDF"
         data-chtype="MOL2"
         onclick="testSendCommand(this);"
       >000 - SDF/MOL2 (Cheminf_hf_npa)</button>
       <button 
-        data-surl="http://147.251.255.54/files_sb/structures/56613.sdf" 
-        data-churl="http://147.251.255.54//api/files/calculated-charges/6220/chg"
+        data-surl="http://test.chargedb.dominiktousek.eu/files/structures/56613.sdf" 
+        data-churl="http://test.chargedb.dominiktousek.eu/api/files/calculated-charges/6220/chg"
         data-stype="SDF"
         data-chtype="CHG"
         onclick="testSendCommand(this);"
       >000 - SDF/CHG  (Cheminf_hf_npa)</button>
       |
       <button 
-        data-surl="http://147.251.255.54/files_sb/structures/56615.sdf" 
-        data-churl="http://147.251.255.54//api/files/calculated-charges/52910/mol2"
+        data-surl="http://test.chargedb.dominiktousek.eu/files/structures/56615.sdf" 
+        data-churl="http://test.chargedb.dominiktousek.eu/api/files/calculated-charges/52910/mol2"
         data-stype="SDF"
         data-chtype="MOL2"
         onclick="testSendCommand(this);"
       >001 - SDF/MOL2 (Gasteiger-Marsili)</button>
       <button 
-        data-surl="http://147.251.255.54/files_sb/structures/56615.sdf" 
-        data-churl="http://147.251.255.54//api/files/calculated-charges/52910/chg"
+        data-surl="http://test.chargedb.dominiktousek.eu/files/structures/56615.sdf" 
+        data-churl="http://test.chargedb.dominiktousek.eu/api/files/calculated-charges/52910/chg"
         data-stype="SDF"
         data-chtype="CHG"
         onclick="testSendCommand(this);"
       >001 - SDF/CHG (Gasteiger-Marsili)</button>
       <button 
-        data-surl="http://147.251.255.54/files_sb/structures/56615.sdf" 
-        data-churl="http://147.251.255.54//api/files/calculated-charges/6222/mol2"
+        data-surl="http://test.chargedb.dominiktousek.eu/files/structures/56615.sdf" 
+        data-churl="http://test.chargedb.dominiktousek.eu/api/files/calculated-charges/6222/mol2"
         data-stype="SDF"
         data-chtype="MOL2"
         onclick="testSendCommand(this);"
       >001 - SDF/MOL2 (EEM - Cheminf_hf_npa)</button>
       <button 
-        data-surl="http://147.251.255.54/files_sb/structures/56615.sdf" 
-        data-churl="http://147.251.255.54//api/files/calculated-charges/6222/chg"
+        data-surl="http://test.chargedb.dominiktousek.eu/files/structures/56615.sdf" 
+        data-churl="http://test.chargedb.dominiktousek.eu/api/files/calculated-charges/6222/chg"
         data-stype="SDF"
         data-chtype="CHG"
         onclick="testSendCommand(this);"
       >001 - SDF/CHG (EEM - Cheminf_hf_npa)</button>
       |
       <button 
-        data-surl="http://147.251.255.54/files_sb/structures/56619.sdf" 
-        data-churl="http://147.251.255.54//api/files/calculated-charges/52914/mol2"
+        data-surl="http://test.chargedb.dominiktousek.eu/files/structures/56619.sdf" 
+        data-churl="http://test.chargedb.dominiktousek.eu/api/files/calculated-charges/52914/mol2"
         data-stype="SDF"
         data-chtype="MOL2"
         onclick="testSendCommand(this);"
       >003 - SDF/MOL2 (Gasteiger-Marsili)</button>
       <button 
-        data-surl="http://147.251.255.54/files_sb/structures/56619.sdf" 
-        data-churl="http://147.251.255.54//api/files/calculated-charges/52914/chg"
+        data-surl="http://test.chargedb.dominiktousek.eu/files/structures/56619.sdf" 
+        data-churl="http://test.chargedb.dominiktousek.eu/api/files/calculated-charges/52914/chg"
         data-stype="SDF"
         data-chtype="CHG"
         onclick="testSendCommand(this);"
       >003 - SDF/CHG (Gasteiger-Marsili)</button>
       <button 
-        data-surl="http://147.251.255.54/files_sb/structures/56619.sdf" 
-        data-churl="http://147.251.255.54//api/files/calculated-charges/6226/mol2"
+        data-surl="http://test.chargedb.dominiktousek.eu/files/structures/56619.sdf" 
+        data-churl="http://test.chargedb.dominiktousek.eu/api/files/calculated-charges/6226/mol2"
         data-stype="SDF"
         data-chtype="MOL2"
         onclick="testSendCommand(this);"
       >003 - SDF/MOL2 (Cheminf_hf_npa)</button>
       <button 
-        data-surl="http://147.251.255.54/files_sb/structures/56619.sdf" 
-        data-churl="http://147.251.255.54//api/files/calculated-charges/6226/chg"
+        data-surl="http://test.chargedb.dominiktousek.eu/files/structures/56619.sdf" 
+        data-churl="http://test.chargedb.dominiktousek.eu/api/files/calculated-charges/6226/chg"
         data-stype="SDF"
         data-chtype="CHG"
         onclick="testSendCommand(this);"
@@ -157,12 +161,16 @@
       >1tqn - default obabel charges (PDB->mol2)</button>
       |
       <button 
-        data-surl="http://147.251.255.54/files_sb/structures/56615.sdf" 
-        data-churl="http://147.251.255.54//api/files/calculated-charges/52914/chg"
+        data-surl="http://test.chargedb.dominiktousek.eu/files/structures/56615.sdf" 
+        data-churl="http://test.chargedb.dominiktousek.eu/api/files/calculated-charges/52914/chg"
         data-stype="SDF"
         data-chtype="CHG"
         onclick="testSendCommand(this);"
       >001 - incompatible charges</button>
+      |
+      <button 
+        onclick="testSendCommandUseDefaultThemes(this);"
+      >Use default themes</button>
     </div>
     <script type="text/javascript" src="%PUBLIC_URL%/LiteMol-plugin.min.js"></script>
     <script>

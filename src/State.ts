@@ -390,7 +390,7 @@ export namespace LMState {
                             if(charges !== void 0){
                                 checkChargesCount(charges, plugin);
                                 SharedStorage.set("CHARGES", charges);
-                               generateThemes();
+                                generateThemes();
                             }
                         });
                         
@@ -422,9 +422,60 @@ export namespace LMState {
             console.warn("No charges have been loaded! Skipping theme generation...");
             return;
         }
-
         let hasHet = (plugin.context.select('molecule-het').length>0);
         let hasPolymer = (plugin.context.select('polymer-visual').length>0);
+
+        let colorByAtom = SharedStorage.get("LM_USE_DEFAULT_THEMES");
+        if(colorByAtom!==void 0 && colorByAtom !== null && colorByAtom){
+            let ballsAndSticksByElementSymbol = LiteMol.Bootstrap.Visualization.Molecule.Default.Themes
+                .filter((v,i,a)=>{
+                return v.name === "Element Symbol";
+            })[0];
+            let cartoonsByChainId = LiteMol.Bootstrap.Visualization.Molecule.Default.Themes
+                .filter((v,i,a)=>{
+                return v.name === "Chain ID";
+            })[0];
+
+            let ballsAndSticksDefault = LiteMol.Bootstrap.Visualization.Molecule.Default.ForType.get("BallsAndSticks");
+            if(ballsAndSticksDefault !== void 0 && hasHet){
+                let c = LiteMol.Core.Utils.FastMap.create<string, LiteMol.Visualization.Color>();
+                ballsAndSticksByElementSymbol.colors!.forEach((cc, n) => {
+                    c.set(n!, cc!);
+                });                 
+
+                applyTheme(ballsAndSticksByElementSymbol.provider(plugin.context.select("molecule-het")[0], 
+                {
+                    colors: c,
+                    disableFog: ballsAndSticksDefault.theme.disableFog,
+                    interactive: ballsAndSticksDefault.theme.interactive,
+                    isSticky: true,
+                    transparency: ballsAndSticksDefault.theme.transparency,
+                    variables: ballsAndSticksDefault.theme.variables,
+
+                }), plugin, "molecule-het");
+            }
+
+            let cartoonsDefault = LiteMol.Bootstrap.Visualization.Molecule.Default.ForType.get("Cartoons");
+            if(cartoonsDefault !== void 0 && hasPolymer){
+                let c = LiteMol.Core.Utils.FastMap.create<string, LiteMol.Visualization.Color>();
+                cartoonsByChainId.colors!.forEach((cc, n) => {
+                    c.set(n!, cc!);
+                });                 
+
+                applyTheme(cartoonsByChainId.provider(plugin.context.select("polymer-visual")[0], 
+                {
+                    colors: c,
+                    disableFog: cartoonsDefault.theme.disableFog,
+                    interactive: cartoonsDefault.theme.interactive,
+                    isSticky: true,
+                    transparency: cartoonsDefault.theme.transparency,
+                    variables: cartoonsDefault.theme.variables,
+
+                }), plugin, "polymer-visual");
+            }
+            return;
+        }
+        
         if(hasHet){
             applyTheme(generateColorTheme(plugin, charges), plugin, 'molecule-het');
         }

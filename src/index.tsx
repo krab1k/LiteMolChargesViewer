@@ -23,6 +23,11 @@ EventQueue.subscribe(Events.LM_START, (params)=>{
   SharedStorage.set("LM-PLUGIN", params.plugin);
 });
 
+EventQueue.subscribe(Events.LM_USE_DEFAULT_THEMES, (params)=>{
+  SharedStorage.set("LM_USE_DEFAULT_THEMES", params.value);
+  LMState.generateThemes();
+});
+
 ReactDOM.render(
     <App />,
   document.getElementById('root') as HTMLElement
