@@ -34,6 +34,10 @@ export class EventQueue{
         };
     }
 
+    static isInitialised(){
+        return _global.LiteMolChargesViewerEventQueue !== void 0 && _global.LiteMolChargesViewerEventQueue !== null;
+    }
+
     static send(command:string, params?: any){
         _global.LiteMolChargesViewerEventQueue.send(command, params);
     }

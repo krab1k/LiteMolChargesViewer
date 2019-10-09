@@ -23,7 +23,7 @@ export namespace LMState {
         return (Math.ceil(Number(nmbr) * 10000) / 10000);
     }
 
-    function applyTheme(theme:LiteMol.Visualization.Theme, plugin:LiteMol.Plugin.Controller, ref: string){
+    export function applyTheme(theme:LiteMol.Visualization.Theme, plugin:LiteMol.Plugin.Controller, ref: string){
         LiteMol.Bootstrap.Command.Visual.UpdateBasicTheme.dispatch(plugin.context, { 
             visual: plugin.context.select(ref)[0] as any, theme
         });
@@ -167,7 +167,7 @@ export namespace LMState {
         return cloned;
     }
 
-    function generateColorTheme(plugin: LiteMol.Plugin.Controller, charges: number[]){
+    export function generateColorTheme(plugin: LiteMol.Plugin.Controller, charges: number[]){
         let colors = new Map<number, LiteMol.Visualization.Color>();       
         let minVal = charges.reduce((pv,cv,ci,a)=>{
             return Math.min(cv, pv);
@@ -177,6 +177,35 @@ export namespace LMState {
         });
 
         let indices = (plugin.selectEntities("molecule-het")[0].props as any).model.entity.props.indices;
+
+        let themeColorSettings = getAndAdaptColorSettings(minVal, maxVal);
+        for(let i=0;i<indices.length;i++){
+            let chg = charges[indices[i]];
+            if(isNaN(chg)){
+                continue;
+            }
+            let color = getColor(chg, themeColorSettings);
+            colors.set(indices[i], color);
+        }
+
+        return createTheme(colors);          
+    } 
+
+    export function generateColorThemeBySelector(plugin: LiteMol.Plugin.Controller, charges: number[], selector: string){
+        let colors = new Map<number, LiteMol.Visualization.Color>();       
+        let minVal = charges.reduce((pv,cv,ci,a)=>{
+            return Math.min(cv, pv);
+        });
+        let maxVal = charges.reduce((pv,cv,ci,a)=>{
+            return Math.max(cv, pv);
+        });
+
+        let results = plugin.selectEntities(selector);
+        if(results===void 0 || results.length === 0){
+            return;
+        }
+        let props = (results[0].props as any);
+        let indices = props.model.entity.props.indices;
 
         let themeColorSettings = getAndAdaptColorSettings(minVal, maxVal);
         for(let i=0;i<indices.length;i++){

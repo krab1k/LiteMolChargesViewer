@@ -7,8 +7,10 @@ import { EventQueue, Events } from './EventQueue';
 import { SharedStorage } from './SharedStorage';
 import { LMState } from "./State";
 
-EventQueue.init();
-SharedStorage.init();
+if(!EventQueue.isInitialised()){
+  EventQueue.init();
+  SharedStorage.init();
+}
 
 EventQueue.subscribe(Events.LM_SET_DEFAULT_COLOR_SCHEME, (settings)=>{
   SharedStorage.set("THEME_COLOR_SETTINGS", settings);

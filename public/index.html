@@ -29,8 +29,8 @@
           charges_format: e.getAttribute('data-chtype') // Charges file format
         });
       }
-      function testSendCommandUseDefaultThemes(e){
-        LiteMolChargesViewerEventQueue.send("lm-use-default-themes", {value: true});
+      function testSendCommandUseDefaultThemes(e, value){
+        LiteMolChargesViewerEventQueue.send("lm-use-default-themes", {value: value});
       }
     </script>
     <style>
@@ -169,8 +169,11 @@
       >001 - incompatible charges</button>
       |
       <button 
-        onclick="testSendCommandUseDefaultThemes(this);"
+        onclick="testSendCommandUseDefaultThemes(this, true);"
       >Use default themes</button>
+      <button 
+        onclick="testSendCommandUseDefaultThemes(this, false);"
+      >Do not use default themes</button>
     </div>
     <script type="text/javascript" src="%PUBLIC_URL%/LiteMol-plugin.min.js"></script>
     <script>

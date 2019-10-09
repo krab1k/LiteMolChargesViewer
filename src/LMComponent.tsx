@@ -18,6 +18,7 @@ import './ext/LiteMol/fonts/fontello.woff';
 import './ext/LiteMol/fonts/fontello.woff2';
 import './ext/LiteMol/fonts/fontello.eot';
 import './ext/LiteMol/fonts/fontello.svg';
+import { SharedStorage } from './SharedStorage';
 
 let DEBUG=false;
 
@@ -54,6 +55,7 @@ export class LiteMolContainer extends React.Component<Props,any>{
         if(this.plugin === null){
             return;
         }
+        SharedStorage.set("LM-PLUGIN", null);
         this.plugin.clear();
         this.plugin.destroy();
         this.plugin = null;
@@ -79,6 +81,8 @@ export class LiteMolContainer extends React.Component<Props,any>{
         EventQueue.send(Events.LM_START, {
             plugin: this.plugin
         });
+
+        SharedStorage.set("LM-PLUGIN", this.plugin);
 
         if(!DEBUG){
             let itm = document.getElementsByClassName("lm-icon-tools").item(0);
