@@ -1,6 +1,8 @@
 import { SharedStorage } from "./SharedStorage";
 import { EventQueue, Events } from "./EventQueue";
 
+import './ext/LiteMol/js/LiteMol-plugin';
+
 export namespace LMState {
 
     import Transformer = LiteMol.Bootstrap.Entity.Transformer;
@@ -167,7 +169,7 @@ export namespace LMState {
         return cloned;
     }
 
-    export function generateColorTheme(plugin: LiteMol.Plugin.Controller, charges: number[]){
+    export function generateColorTheme(plugin: LiteMol.Plugin.Controller, charges: number[], visualRef: string){
         let colors = new Map<number, LiteMol.Visualization.Color>();       
         let minVal = charges.reduce((pv,cv,ci,a)=>{
             return Math.min(cv, pv);
@@ -176,8 +178,11 @@ export namespace LMState {
             return Math.max(cv, pv);
         });
 
-        let indices = (plugin.selectEntities("molecule-het")[0].props as any).model.entity.props.indices;
-
+        let props = (plugin.selectEntities(visualRef)[0].props as any);
+        let indices = props.model.entity.props.indices;
+        if (indices === void 0){
+            indices = props.model.entity.props.model.positions.indices;
+        }
         let themeColorSettings = getAndAdaptColorSettings(minVal, maxVal);
         for(let i=0;i<indices.length;i++){
             let chg = charges[indices[i]];
@@ -377,12 +382,8 @@ export namespace LMState {
         }
     }
 
-    export function loadData(plugin: LiteMol.Plugin.Controller, structureUrl: string, 
-            chargesUrl: string, structureFormat: SupportedFormat, chargesFormat: SupportedChargesFormat) {
-        plugin.clear();
-        
-        let modelLoadPromise = new Promise<any>((res,rej)=>{
-            let model = plugin.createTransform()
+    function createModel(plugin: LiteMol.Plugin.Controller, structureUrl: string, structureFormat: SupportedFormat){
+        let model = plugin.createTransform()
                 .add(plugin.root, Transformer.Data.Download, 
                     { 
                         url: structureUrl, 
@@ -390,20 +391,126 @@ export namespace LMState {
                     })
                 .then(Transformer.Molecule.CreateFromData, 
                     { 
-                        format: getFormat(structureFormat)
+                        format: getFormat(structureFormat),
+
                     }, 
                     { 
                         isBinding: true 
                     })
-                .then(Transformer.Molecule.CreateModel, { modelIndex: 0 })
-                .then(Transformer.Molecule.CreateMacromoleculeVisual, 
+                .then(Transformer.Molecule.CreateModel, { modelIndex: 0 }, {ref: "structure_model"});
+            return plugin.applyTransform(model);
+    }
+
+    function getModelNode(plugin: LiteMol.Plugin.Controller, node?:LiteMol.Bootstrap.Entity.Any): LiteMol.Bootstrap.Entity.Any|null{
+        if(node === void 0){
+            node = plugin.root;
+        }
+
+        if(node.ref === "structure_model"){
+            return node;
+        }
+
+        for(let n of node.children){
+            let rv = getModelNode(plugin,n);
+            if( rv!== null){
+                return rv;
+            }
+        }
+
+        return null;
+    }
+
+    export function loadData(plugin: LiteMol.Plugin.Controller, structureUrl: string, 
+            chargesUrl: string, structureFormat: SupportedFormat, chargesFormat: SupportedChargesFormat) {
+        plugin.clear();
+        
+        let modelLoadPromise = new Promise<any>((res,rej)=>{
+            let defaultBaSThemeTempl = LiteMol.Bootstrap.Visualization.Molecule.Default.ForType.get("BallsAndSticks");
+            let defaultBaSTheme:LiteMol.Bootstrap.Visualization.Style<"Cartoons" | "Calpha" | "BallsAndSticks" | "VDWBalls" | "Surface", any> ={
+                isNotSelectable: defaultBaSThemeTempl.isNotSelectable,
+                taskType: defaultBaSThemeTempl.taskType,
+                type: defaultBaSThemeTempl.type,
+                params: defaultBaSThemeTempl.params,
+                theme: {
+                    colors: defaultBaSThemeTempl.theme.colors,
+                    disableFog: defaultBaSThemeTempl.theme.disableFog,
+                    interactive: defaultBaSThemeTempl.theme.interactive,
+                    template: defaultBaSThemeTempl.theme.template,
+                    transparency: {
+                        writeDepth: defaultBaSThemeTempl.theme.transparency.writeDepth,
+                        alpha: 0
+                    }
+                }
+            };
+            let defaultSurfaceThemeTempl = LiteMol.Bootstrap.Visualization.Molecule.Default.ForType.get("Surface");
+            let defaultSurfaceTheme:LiteMol.Bootstrap.Visualization.Style<"Cartoons" | "Calpha" | "BallsAndSticks" | "VDWBalls" | "Surface", any> ={
+                isNotSelectable: defaultSurfaceThemeTempl.isNotSelectable,
+                taskType: defaultSurfaceThemeTempl.taskType,
+                type: defaultSurfaceThemeTempl.type,
+                params: defaultSurfaceThemeTempl.params,
+                theme: {
+                    colors: defaultSurfaceThemeTempl.theme.colors,
+                    disableFog: defaultSurfaceThemeTempl.theme.disableFog,
+                    interactive: defaultSurfaceThemeTempl.theme.interactive,
+                    template: defaultSurfaceThemeTempl.theme.template,
+                    transparency: {
+                        writeDepth: defaultSurfaceThemeTempl.theme.transparency.writeDepth,
+                        alpha: 0
+                    }
+                }
+            };
+
+            createModel(plugin, structureUrl, structureFormat).then(()=>{
+                let node = getModelNode(plugin);
+                if(node === null){
+                    return;
+                }
+                let basTransform = plugin.createTransform()
+                    .add(node, Transformer.Molecule.CreateVisual, 
+                    { 
+                        style: {
+                            isNotSelectable: false,
+                            type: "BallsAndSticks",
+                            taskType: "Background",
+                            params: LiteMol.Bootstrap.Visualization.Molecule.Default.BallsAndSticksParams,
+                            theme: defaultBaSTheme.theme,
+                        }
+                    },{
+                        ref: "molecule-bas",
+                        isBinding: false,
+                        isHidden: false,
+                    });
+                        
+                let surfaceTransform = plugin.createTransform()
+                    .add(node, Transformer.Molecule.CreateVisual, 
+                    { 
+                        style: {
+                            isNotSelectable: false,
+                            type: "Surface",
+                            taskType: "Background",
+                            params: LiteMol.Bootstrap.Visualization.Molecule.Default.SurfaceParams,
+                            theme: defaultSurfaceTheme.theme,
+                        }
+                    },{
+                        ref: "molecule-surface",
+                        isBinding: false,
+                        isHidden: false,
+                    });
+                        
+                let polymerTransform = plugin.createTransform()
+                    .add(node, Transformer.Molecule.CreateMacromoleculeVisual, 
                     { 
                         polymer: true, polymerRef: 'polymer-visual', het: true,
                         hetRef: 'molecule-het', water: true, waterRef: 'molecule-het'
                     });
-                                    
-            plugin.applyTransform(model)
-                .then(() => {
+                
+                let promises = [];
+
+                promises.push(plugin.applyTransform(basTransform));
+                promises.push(plugin.applyTransform(surfaceTransform));
+                promises.push(plugin.applyTransform(polymerTransform));
+
+                Promise.all(promises).then(()=>{
                     if(plugin.instance === void 0){
                         rej("Loading data interupted due to redraw.");
                         return;
@@ -419,23 +526,19 @@ export namespace LMState {
                             if(charges !== void 0){
                                 checkChargesCount(charges, plugin);
                                 SharedStorage.set("CHARGES", charges);
+                                checkPolymerSize(plugin);
                                 generateThemes();
                             }
                         });
-                        
                         res();
                     }
-                })
-                .catch(err=>{                    
+                }).catch(err=>{
                     console.error("Cannot apply transform.", err);
                 });
+            });
         });
 
-        let promises = [];
-
-        promises.push(modelLoadPromise);
-
-        return Promise.all(promises);
+        return modelLoadPromise;
     }
 
     export function generateThemes(plugin?:LiteMol.Plugin.Controller){
@@ -451,6 +554,8 @@ export namespace LMState {
             console.warn("No charges have been loaded! Skipping theme generation...");
             return;
         }
+        let hasSurface = (plugin.context.select('molecule-surface').length>0);
+        let hasHetBaS = (plugin.context.select('molecule-bas').length>0);
         let hasHet = (plugin.context.select('molecule-het').length>0);
         let hasPolymer = (plugin.context.select('polymer-visual').length>0);
 
@@ -464,54 +569,201 @@ export namespace LMState {
                 .filter((v,i,a)=>{
                 return v.name === "Chain ID";
             })[0];
+            let surfaceDefaultTheme = LiteMol.Bootstrap.Visualization.Molecule.Default.Themes
+                .filter((v,i,a)=>{
+                return v.name === "Uniform Color";
+            })[0];
 
-            let ballsAndSticksDefault = LiteMol.Bootstrap.Visualization.Molecule.Default.ForType.get("BallsAndSticks");
-            if(ballsAndSticksDefault !== void 0 && hasHet){
-                let c = LiteMol.Core.Utils.FastMap.create<string, LiteMol.Visualization.Color>();
-                ballsAndSticksByElementSymbol.colors!.forEach((cc, n) => {
-                    c.set(n!, cc!);
-                });                 
-
-                applyTheme(ballsAndSticksByElementSymbol.provider(plugin.context.select("molecule-het")[0], 
-                {
-                    colors: c,
-                    disableFog: ballsAndSticksDefault.theme.disableFog,
-                    interactive: ballsAndSticksDefault.theme.interactive,
-                    isSticky: true,
-                    transparency: ballsAndSticksDefault.theme.transparency,
-                    variables: ballsAndSticksDefault.theme.variables,
-
-                }), plugin, "molecule-het");
-            }
-
-            let cartoonsDefault = LiteMol.Bootstrap.Visualization.Molecule.Default.ForType.get("Cartoons");
-            if(cartoonsDefault !== void 0 && hasPolymer){
-                let c = LiteMol.Core.Utils.FastMap.create<string, LiteMol.Visualization.Color>();
-                cartoonsByChainId.colors!.forEach((cc, n) => {
-                    c.set(n!, cc!);
-                });                 
-
-                applyTheme(cartoonsByChainId.provider(plugin.context.select("polymer-visual")[0], 
-                {
-                    colors: c,
-                    disableFog: cartoonsDefault.theme.disableFog,
-                    interactive: cartoonsDefault.theme.interactive,
-                    isSticky: true,
-                    transparency: cartoonsDefault.theme.transparency,
-                    variables: cartoonsDefault.theme.variables,
-
-                }), plugin, "polymer-visual");
-            }
+            applyDefaultTheme(hasHet, ballsAndSticksByElementSymbol,"BallsAndSticks", plugin, "molecule-het");
+            applyDefaultTheme(hasPolymer, cartoonsByChainId,"Cartoons", plugin, "polymer-visual");
+            applyDefaultTheme(hasHetBaS, ballsAndSticksByElementSymbol,"BallsAndSticks", plugin, "molecule-bas");
+            applyDefaultTheme(hasSurface, surfaceDefaultTheme,"Surface", plugin, "molecule-surface");
             return;
         }
         
         if(hasHet){
-            applyTheme(generateColorTheme(plugin, charges), plugin, 'molecule-het');
+            applyTheme(generateColorTheme(plugin, charges, "molecule-het"), plugin, 'molecule-het');
         }
         if(hasPolymer){
             applyTheme(generateColorThemeCartoons(plugin, charges), plugin, 'polymer-visual');
         }
+        if(hasHetBaS){
+            applyTheme(generateColorTheme(plugin, charges, 'molecule-bas'), plugin, 'molecule-bas');
+        }
+        if(hasSurface){
+            applyTheme(generateColorThemeSurface(plugin, charges), plugin, 'molecule-surface');
+        }
     }
+
+    function applyDefaultTheme(hasRef: boolean, defaultThemeTemplate: LiteMol.Bootstrap.Visualization.Theme.Template, 
+        defaultThemeType: "Cartoons" | "Calpha" | "BallsAndSticks" | "VDWBalls" | "Surface",
+        plugin: LiteMol.Plugin.Controller, visualRef: string ){
+        let defaultTheme = LiteMol.Bootstrap.Visualization.Molecule.Default.ForType.get(defaultThemeType);
+        if(defaultTheme !== void 0 && hasRef){
+            let c = LiteMol.Core.Utils.FastMap.create<string, LiteMol.Visualization.Color>();
+            defaultThemeTemplate.colors!.forEach((cc, n) => {
+                c.set(n!, cc!);
+            });                 
+    
+            applyTheme(defaultThemeTemplate.provider(plugin.context.select(visualRef)[0], 
+            {
+                colors: c,
+                disableFog: defaultTheme.theme.disableFog,
+                interactive: defaultTheme.theme.interactive,
+                isSticky: true,
+                transparency: defaultTheme.theme.transparency,
+                variables: defaultTheme.theme.variables,
+    
+            }), plugin, visualRef);
+        }
+    }
+
+    export function checkPolymerSize(plugin: LiteMol.Plugin.Controller){
+        let polymerVisual = plugin.context.select("polymer-visual");
+        if(polymerVisual.length>0){
+            let count = (polymerVisual[0].props as any).model.model.data.atoms.count;
+            if(count < 100){
+                LiteMol.Bootstrap.Command.Entity.SetVisibility.dispatch(plugin.context, {
+                    entity: plugin.context.select("polymer-visual")[0],
+                    visible: false
+                });
+                LiteMol.Bootstrap.Command.Entity.SetVisibility.dispatch(plugin.context, {
+                    entity: plugin.context.select("molecule-bas")[0],
+                    visible: true
+                });
+                LiteMol.Bootstrap.Command.Entity.SetVisibility.dispatch(plugin.context, {
+                    entity: plugin.context.select("molecule-surface")[0],
+                    visible: false
+                });
+            }
+            else{
+                LiteMol.Bootstrap.Command.Entity.SetVisibility.dispatch(plugin.context, {
+                    entity: plugin.context.select("polymer-visual")[0],
+                    visible: true
+                });
+                LiteMol.Bootstrap.Command.Entity.SetVisibility.dispatch(plugin.context, {
+                    entity: plugin.context.select("molecule-bas")[0],
+                    visible: false
+                });
+                LiteMol.Bootstrap.Command.Entity.SetVisibility.dispatch(plugin.context, {
+                    entity: plugin.context.select("molecule-surface")[0],
+                    visible: false
+                });
+            }
+        }
+    }
+
+    function generateColorThemeSurface(plugin: LiteMol.Plugin.Controller, charges: number[]){     
+        let colors = new Map<number, LiteMol.Visualization.Color>();       
+
+        let results = plugin.selectEntities('molecule-surface');
+        if(results===void 0 || results.length === 0){
+            return;
+        }
+        let props = (results[0].props as any);
+        let indices = props.model.entity.props.indices;
+        if(indices === void 0){
+            indices = props.model.entity.props.model.positions.indices;
+        }
+
+        let entity = results[0];
+        let model = LiteMol.Bootstrap.Utils.Molecule.findModel(entity)!.props.model;
+        let atomRadius = LiteMol.Bootstrap.Utils.vdwRadiusFromElementSymbol(model);
+        let surfaceParams = LiteMol.Bootstrap.Visualization.Molecule.Default.SurfaceParams;
+        let density = surfaceParams.density;
+        let probeRadius = surfaceParams.probeRadius;
+        let vdwScaleFactor;
+
+        // make the atoms artificially bigger for low resolution surfaces
+        if (density >= 0.99)  {
+            // so that the number is float and not int32 internally 
+            vdwScaleFactor = 1.000000001; 
+        }
+        else {
+            vdwScaleFactor = 1 + (1 - density * density);
+        }
+
+        let minVal = charges.reduce((pv,cv,ci,a)=>{
+            let r = vdwScaleFactor * atomRadius(ci) + probeRadius;
+            return Math.min(cv/r, pv);
+        }, Number.MAX_VALUE);
+        let maxVal = charges.reduce((pv,cv,ci,a)=>{
+            let r = vdwScaleFactor * atomRadius(ci) + probeRadius;
+            return Math.max(cv/r, pv);
+        }, Number.MIN_VALUE);
+
+        let themeColorSettings = getAndAdaptColorSettings(minVal, maxVal);
+        let surfaceCharges = new Map<number, number>();
+        for(let i=0;i<indices.length;i++){
+            let r = vdwScaleFactor * atomRadius(i) + probeRadius;
+            let chg = charges[indices[i]]/r;
+            surfaceCharges.set(indices[i], chg);
+            if(isNaN(chg)){
+                continue;
+            }
+            let color = getColor(chg, themeColorSettings);
+            colors.set(indices[i], color);
+        }
+
+        SharedStorage.set("SURFACE-CHARGES", surfaceCharges);
+
+        return createTheme(colors);        
+    } 
+
+    export function switchToSurface(plugin: LiteMol.Plugin.Controller){
+        let polymerVisual = plugin.context.select("polymer-visual");
+        if(polymerVisual.length>0){
+            LiteMol.Bootstrap.Command.Entity.SetVisibility.dispatch(plugin.context, {
+                entity: plugin.context.select("polymer-visual")[0],
+                visible: false
+            });
+            LiteMol.Bootstrap.Command.Entity.SetVisibility.dispatch(plugin.context, {
+                entity: plugin.context.select("molecule-bas")[0],
+                visible: false
+            });
+            LiteMol.Bootstrap.Command.Entity.SetVisibility.dispatch(plugin.context, {
+                entity: plugin.context.select("molecule-surface")[0],
+                visible: true
+            });
+        }
+    }
+
+    export function switchToCartoons(plugin: LiteMol.Plugin.Controller){
+        let polymerVisual = plugin.context.select("polymer-visual");
+        if(polymerVisual.length>0){
+            LiteMol.Bootstrap.Command.Entity.SetVisibility.dispatch(plugin.context, {
+                entity: plugin.context.select("polymer-visual")[0],
+                visible: true
+            });
+            LiteMol.Bootstrap.Command.Entity.SetVisibility.dispatch(plugin.context, {
+                entity: plugin.context.select("molecule-bas")[0],
+                visible: false
+            });
+            LiteMol.Bootstrap.Command.Entity.SetVisibility.dispatch(plugin.context, {
+                entity: plugin.context.select("molecule-surface")[0],
+                visible: false
+            });
+        }
+    }
+
+    export function switchToBaS(plugin: LiteMol.Plugin.Controller){
+        let polymerVisual = plugin.context.select("polymer-visual");
+        if(polymerVisual.length>0){
+            LiteMol.Bootstrap.Command.Entity.SetVisibility.dispatch(plugin.context, {
+                entity: plugin.context.select("polymer-visual")[0],
+                visible: false
+            });
+        }
+        LiteMol.Bootstrap.Command.Entity.SetVisibility.dispatch(plugin.context, {
+            entity: plugin.context.select("molecule-bas")[0],
+            visible: true
+        });
+        LiteMol.Bootstrap.Command.Entity.SetVisibility.dispatch(plugin.context, {
+            entity: plugin.context.select("molecule-surface")[0],
+            visible: false
+        });
+    }
+
 }
 
 export type SupportedFormat = "SDF" | "mmBCIF" | "mmCIF" | "PDB";

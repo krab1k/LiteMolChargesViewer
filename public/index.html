@@ -32,6 +32,15 @@
       function testSendCommandUseDefaultThemes(e, value){
         LiteMolChargesViewerEventQueue.send("lm-use-default-themes", {value: value});
       }
+      function testSendCommandSwitchToSurface(e){
+        LiteMolChargesViewerEventQueue.send("lm-switch-to-surface", {});
+      }
+      function testSendCommandSwitchToBaS(e){
+        LiteMolChargesViewerEventQueue.send("lm-switch-to-bas", {});
+      }
+      function testSendCommandSwitchToCartoons(e){
+        LiteMolChargesViewerEventQueue.send("lm-switch-to-cartoons", {});
+      }
     </script>
     <style>
     #root{
@@ -174,6 +183,24 @@
       <button 
         onclick="testSendCommandUseDefaultThemes(this, false);"
       >Do not use default themes</button>
+      |
+      <button 
+        data-surl="http://waldemar.dominiktousek.eu:8181/share/GLU_ideal.pdb" 
+        data-churl="http://test.chargedb.dominiktousek.eu/api/files/calculated-charges/52914/chg"
+        data-stype="PDB"
+        data-chtype="CHG"
+        onclick="testSendCommand(this);"
+      >GLU - incompatible charges and too small</button>
+      |
+      <button 
+        onclick="testSendCommandSwitchToSurface(this);"
+      >Switch to Surface</button>
+      <button 
+        onclick="testSendCommandSwitchToCartoons(this);"
+      >Switch to Cartoons</button>
+      <button 
+        onclick="testSendCommandSwitchToBaS(this);"
+      >Switch to Balls and Sticks</button>
     </div>
     <script type="text/javascript" src="%PUBLIC_URL%/LiteMol-plugin.min.js"></script>
     <script>

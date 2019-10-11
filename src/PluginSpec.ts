@@ -61,6 +61,20 @@ export function HighlightCustomElements(context: Bootstrap.Context) {
             
             return `<b>Charge</b>: ${finalCharge}`;
         }
+        else if((info as any).source.ref==="molecule-surface"){
+            if(!SharedStorage.has("SURFACE-CHARGES")){
+                return void 0;
+            }
+            let charges = SharedStorage.get("SURFACE-CHARGES");
+            let chg = charges.get((info as any).elements[0]);
+            chg = LMState.roundTo4Positions(chg);
+            
+            if (isNaN(chg)){
+                return `<b>Charge</b>: (not available)`;
+            }
+            
+            return `<b>Charge</b>: ${chg}`;
+        }
 
         return "";
     });        

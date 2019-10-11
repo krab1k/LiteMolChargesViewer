@@ -58,5 +58,8 @@ export enum Events{
     LM_LOAD_MOLECULE="lm-load-molecule",
     LM_SET_DEFAULT_COLOR_SCHEME="lm-set-default-color-scheme",
     LM_INCOMPLETE_CHARGES_ERROR="lm-incomplete-charges-error",
-    LM_USE_DEFAULT_THEMES="lm-use-default-themes"
+    LM_USE_DEFAULT_THEMES="lm-use-default-themes",
+    LM_SWITCH_TO_SURFACE="lm-switch-to-surface",
+    LM_SWITCH_TO_CARTOONS="lm-switch-to-cartoons",
+    LM_SWITCH_TO_BALLS_AND_STICKS="lm-switch-to-bas"
 }

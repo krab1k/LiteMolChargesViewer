@@ -30,6 +30,27 @@ EventQueue.subscribe(Events.LM_USE_DEFAULT_THEMES, (params)=>{
   LMState.generateThemes();
 });
 
+EventQueue.subscribe(Events.LM_SWITCH_TO_SURFACE, ()=>{
+  let plugin = SharedStorage.get("LM-PLUGIN");
+  if(plugin !== void 0 && plugin !== null){
+    LMState.switchToSurface(plugin);
+  }
+});
+
+EventQueue.subscribe(Events.LM_SWITCH_TO_CARTOONS, ()=>{
+  let plugin = SharedStorage.get("LM-PLUGIN");
+  if(plugin !== void 0 && plugin !== null){
+    LMState.switchToCartoons(plugin);
+  }
+});
+
+EventQueue.subscribe(Events.LM_SWITCH_TO_BALLS_AND_STICKS, ()=>{
+  let plugin = SharedStorage.get("LM-PLUGIN");
+  if(plugin !== void 0 && plugin !== null){
+    LMState.switchToBaS(plugin);
+  }
+});
+
 ReactDOM.render(
     <App />,
   document.getElementById('root') as HTMLElement
