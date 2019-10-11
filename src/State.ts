@@ -517,7 +517,9 @@ export namespace LMState {
                     }
                     let hasHet = (plugin.context.select('molecule-het').length>0);
                     let hasPolymer = (plugin.context.select('polymer-visual').length>0);
-                    if((!hasHet) && !hasPolymer){
+                    let hasBaS = (plugin.context.select('molecule-bas').length>0);
+                    let hasSurface = (plugin.context.select('molecule-surface').length>0);
+                    if((!hasHet) && !hasPolymer && !hasBaS && !hasSurface){
                         rej("Application was unable to retrieve protein structure file.");
                     }
                     else{      
@@ -575,7 +577,9 @@ export namespace LMState {
             })[0];
 
             applyDefaultTheme(hasHet, ballsAndSticksByElementSymbol,"BallsAndSticks", plugin, "molecule-het");
-            applyDefaultTheme(hasPolymer, cartoonsByChainId,"Cartoons", plugin, "polymer-visual");
+            if(hasPolymer){
+                applyDefaultTheme(hasPolymer, cartoonsByChainId, "Cartoons", plugin, "polymer-visual");
+            }
             applyDefaultTheme(hasHetBaS, ballsAndSticksByElementSymbol,"BallsAndSticks", plugin, "molecule-bas");
             applyDefaultTheme(hasSurface, surfaceDefaultTheme,"Surface", plugin, "molecule-surface");
             return;
@@ -620,36 +624,45 @@ export namespace LMState {
 
     export function checkPolymerSize(plugin: LiteMol.Plugin.Controller){
         let polymerVisual = plugin.context.select("polymer-visual");
+        let count = 0;
         if(polymerVisual.length>0){
-            let count = (polymerVisual[0].props as any).model.model.data.atoms.count;
-            if(count < 100){
+            count = (polymerVisual[0].props as any).model.model.data.atoms.count;
+        }
+        else{
+            let basVisual = plugin.context.select("molecule-bas");
+            count = (basVisual[0].props as any).model.entity.props.model.data.atoms.count;
+        }
+        if(count < 100){
+            if(polymerVisual.length>0){
                 LiteMol.Bootstrap.Command.Entity.SetVisibility.dispatch(plugin.context, {
                     entity: plugin.context.select("polymer-visual")[0],
                     visible: false
                 });
-                LiteMol.Bootstrap.Command.Entity.SetVisibility.dispatch(plugin.context, {
-                    entity: plugin.context.select("molecule-bas")[0],
-                    visible: true
-                });
-                LiteMol.Bootstrap.Command.Entity.SetVisibility.dispatch(plugin.context, {
-                    entity: plugin.context.select("molecule-surface")[0],
-                    visible: false
-                });
             }
-            else{
+            LiteMol.Bootstrap.Command.Entity.SetVisibility.dispatch(plugin.context, {
+                entity: plugin.context.select("molecule-bas")[0],
+                visible: true
+            });
+            LiteMol.Bootstrap.Command.Entity.SetVisibility.dispatch(plugin.context, {
+                entity: plugin.context.select("molecule-surface")[0],
+                visible: false
+            });
+        }
+        else{
+            if(polymerVisual.length>0){
                 LiteMol.Bootstrap.Command.Entity.SetVisibility.dispatch(plugin.context, {
                     entity: plugin.context.select("polymer-visual")[0],
                     visible: true
                 });
-                LiteMol.Bootstrap.Command.Entity.SetVisibility.dispatch(plugin.context, {
-                    entity: plugin.context.select("molecule-bas")[0],
-                    visible: false
-                });
-                LiteMol.Bootstrap.Command.Entity.SetVisibility.dispatch(plugin.context, {
-                    entity: plugin.context.select("molecule-surface")[0],
-                    visible: false
-                });
             }
+            LiteMol.Bootstrap.Command.Entity.SetVisibility.dispatch(plugin.context, {
+                entity: plugin.context.select("molecule-bas")[0],
+                visible: !(polymerVisual.length>0)
+            });
+            LiteMol.Bootstrap.Command.Entity.SetVisibility.dispatch(plugin.context, {
+                entity: plugin.context.select("molecule-surface")[0],
+                visible: false
+            });
         }
     }
 
@@ -717,15 +730,15 @@ export namespace LMState {
                 entity: plugin.context.select("polymer-visual")[0],
                 visible: false
             });
-            LiteMol.Bootstrap.Command.Entity.SetVisibility.dispatch(plugin.context, {
-                entity: plugin.context.select("molecule-bas")[0],
-                visible: false
-            });
-            LiteMol.Bootstrap.Command.Entity.SetVisibility.dispatch(plugin.context, {
-                entity: plugin.context.select("molecule-surface")[0],
-                visible: true
-            });
         }
+        LiteMol.Bootstrap.Command.Entity.SetVisibility.dispatch(plugin.context, {
+            entity: plugin.context.select("molecule-bas")[0],
+            visible: false
+        });
+        LiteMol.Bootstrap.Command.Entity.SetVisibility.dispatch(plugin.context, {
+            entity: plugin.context.select("molecule-surface")[0],
+            visible: true
+        });
     }
 
     export function switchToCartoons(plugin: LiteMol.Plugin.Controller){
@@ -735,15 +748,16 @@ export namespace LMState {
                 entity: plugin.context.select("polymer-visual")[0],
                 visible: true
             });
-            LiteMol.Bootstrap.Command.Entity.SetVisibility.dispatch(plugin.context, {
-                entity: plugin.context.select("molecule-bas")[0],
-                visible: false
-            });
-            LiteMol.Bootstrap.Command.Entity.SetVisibility.dispatch(plugin.context, {
-                entity: plugin.context.select("molecule-surface")[0],
-                visible: false
-            });
         }
+        LiteMol.Bootstrap.Command.Entity.SetVisibility.dispatch(plugin.context, {
+            entity: plugin.context.select("molecule-bas")[0],
+            visible: !(polymerVisual.length>0)
+        });
+        LiteMol.Bootstrap.Command.Entity.SetVisibility.dispatch(plugin.context, {
+            entity: plugin.context.select("molecule-surface")[0],
+            visible: false
+        });
+        
     }
 
     export function switchToBaS(plugin: LiteMol.Plugin.Controller){
