@@ -20,6 +20,7 @@ import Tree = LiteMol.Bootstrap.Tree;
 import { SharedStorage } from './SharedStorage';
 import { EventQueue, Events } from "./EventQueue";
 import { LMState } from './State';
+import { Controller } from 'LiteMol-plugin';
 
 /** An ugly hack that will be removed when the time comes */
 export let SuppressShowInteractionOnSelect:boolean = false;
@@ -89,6 +90,9 @@ export function ShowInteractionOnSelect(radius: number) {
         if(params.value === true){
             let plugin = SharedStorage.get("LM-PLUGIN");
             let colorByAtom = params.value;
+            if(SharedStorage.get(LMState.VIZUALIZATION_MODE) === LMState.MODE_BAS){
+                return;
+            }
             if(colorByAtom!==void 0 && colorByAtom !== null && colorByAtom){
                 let ballsAndSticksByElementSymbol = LiteMol.Bootstrap.Visualization.Molecule.Default.Themes
                     .filter((v,i,a)=>{
@@ -141,11 +145,14 @@ export function ShowInteractionOnSelect(radius: number) {
             let plugin = SharedStorage.get("LM-PLUGIN");
             let charges = SharedStorage.get("CHARGES");
             let colorByAtom = params.value;
+            if(SharedStorage.get(LMState.VIZUALIZATION_MODE) === LMState.MODE_BAS){
+                return;
+            }
             if(colorByAtom!==void 0 && colorByAtom !== null && colorByAtom){
                 return;
             }
             if(charges === void 0){
-                console.warn("No charges have been loaded! Skipping theme generation...");
+                //console.warn("No charges have been loaded! Skipping theme generation...");
                 return;
             }
             if(plugin === void 0 || plugin === null){
@@ -192,6 +199,10 @@ export function ShowInteractionOnSelect(radius: number) {
         }
 
         context.behaviours.click.subscribe(info => {
+            if(SharedStorage.get(LMState.VIZUALIZATION_MODE) === LMState.MODE_BAS){
+                return;
+            }
+
             if (SuppressShowInteractionOnSelect || Interactivity.isEmpty(info)) {
                 clean(); 
                 return;
@@ -237,7 +248,7 @@ export function ShowInteractionOnSelect(radius: number) {
                     return;
                 }
                 if(charges === void 0){
-                    console.warn("No charges have been loaded! Skipping theme generation...");
+                    //console.warn("No charges have been loaded! Skipping theme generation...");
                     return;
                 }
                 if(plugin === void 0 || plugin === null){

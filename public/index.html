@@ -41,6 +41,9 @@
       function testSendCommandSwitchToCartoons(e){
         LiteMolChargesViewerEventQueue.send("lm-switch-to-cartoons", {});
       }
+      function getVisualizationMode(e){
+        LiteMolChargesViewerEventQueue.send("lm-get-visualization-mode", (mode)=>{alert(mode);});
+      }
     </script>
     <style>
     #root{
@@ -209,6 +212,10 @@
         data-chtype="CHG"
         onclick="testSendCommand(this);"
       >water converted cif</button>
+      |
+      <button 
+        onclick="getVisualizationMode(this);"
+      >get visualization mode</button>
     </div>
     <script type="text/javascript" src="%PUBLIC_URL%/LiteMol-plugin.min.js"></script>
     <script>

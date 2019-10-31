@@ -90,6 +90,27 @@ export class LiteMolContainer extends React.Component<Props,any>{
                 itm.parentElement.style.setProperty("display", "none");
             }
         }
+
+        this.plugin.subscribe(LiteMol.Bootstrap.Command.Visual.ResetScene, (e)=>{
+            switch(SharedStorage.get(LMState.VIZUALIZATION_MODE)){
+                case LMState.MODE_BAS: LMState.switchToBaS(this.plugin); break;
+                case LMState.MODE_SURFACE: LMState.switchToSurface(this.plugin); break;
+                case LMState.MODE_CARTOONS: LMState.switchToCartoons(this.plugin); break;
+            }
+        });
+        this.plugin.subscribe(LiteMol.Bootstrap.Event.Molecule.ModelSelect, (e)=>{
+            let basVisible = LMState.isVisible(this.plugin,"molecule-bas");
+            let surfaceVisible = LMState.isVisible(this.plugin,"molecule-surface");
+            let cartoonsVisible = LMState.isVisible(this.plugin,"polymer-visual");
+
+            if((basVisible && surfaceVisible)||(basVisible&&cartoonsVisible)||(cartoonsVisible&&surfaceVisible)){
+                switch(SharedStorage.get(LMState.VIZUALIZATION_MODE)){
+                    case LMState.MODE_BAS: LMState.switchToBaS(this.plugin); break;
+                    case LMState.MODE_SURFACE: LMState.switchToSurface(this.plugin); break;
+                    case LMState.MODE_CARTOONS: LMState.switchToCartoons(this.plugin); break;
+                }
+            }
+        });
     }
 
     constructor(props:Props){

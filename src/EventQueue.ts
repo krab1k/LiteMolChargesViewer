@@ -61,5 +61,6 @@ export enum Events{
     LM_USE_DEFAULT_THEMES="lm-use-default-themes",
     LM_SWITCH_TO_SURFACE="lm-switch-to-surface",
     LM_SWITCH_TO_CARTOONS="lm-switch-to-cartoons",
-    LM_SWITCH_TO_BALLS_AND_STICKS="lm-switch-to-bas"
+    LM_SWITCH_TO_BALLS_AND_STICKS="lm-switch-to-bas",
+    LM_GET_VISUALIZATION_MODE="lm-get-visualization-mode"
 }

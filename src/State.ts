@@ -21,6 +21,15 @@ export namespace LMState {
         skipMiddle: false
     };
 
+    export let VIZUALIZATION_MODE = "visualization-mode";
+    export let MODE_SURFACE = "surface";
+    export let MODE_CARTOONS = "cartoons";
+    export let MODE_BAS = "balls-and-sticks";
+
+    let lm_get_visualization_mode_hndlr = (hndlr)=>{
+        hndlr(SharedStorage.get(VIZUALIZATION_MODE));
+    };
+
     export function roundTo4Positions(nmbr:number){
         return (Math.ceil(Number(nmbr) * 10000) / 10000);
     }
@@ -422,6 +431,7 @@ export namespace LMState {
 
     export function loadData(plugin: LiteMol.Plugin.Controller, structureUrl: string, 
             chargesUrl: string, structureFormat: SupportedFormat, chargesFormat: SupportedChargesFormat) {
+        EventQueue.unsubscribe(Events.LM_GET_VISUALIZATION_MODE, lm_get_visualization_mode_hndlr);
         plugin.clear();
         
         let modelLoadPromise = new Promise<any>((res,rej)=>{
@@ -539,8 +549,10 @@ export namespace LMState {
                 });
             });
         });
-
-        return modelLoadPromise;
+        
+        return modelLoadPromise.then((val)=>{
+            EventQueue.subscribe(Events.LM_GET_VISUALIZATION_MODE, lm_get_visualization_mode_hndlr);
+        });
     }
 
     export function generateThemes(plugin?:LiteMol.Plugin.Controller){
@@ -553,7 +565,7 @@ export namespace LMState {
         }
         let charges = SharedStorage.get("CHARGES");
         if(charges === void 0){
-            console.warn("No charges have been loaded! Skipping theme generation...");
+            //console.warn("No charges have been loaded! Skipping theme generation...");
             return;
         }
         let hasSurface = (plugin.context.select('molecule-surface').length>0);
@@ -573,7 +585,7 @@ export namespace LMState {
             })[0];
             let surfaceDefaultTheme = LiteMol.Bootstrap.Visualization.Molecule.Default.Themes
                 .filter((v,i,a)=>{
-                return v.name === "Uniform Color";
+                return v.name === "Chain ID";
             })[0];
 
             applyDefaultTheme(hasHet, ballsAndSticksByElementSymbol,"BallsAndSticks", plugin, "molecule-het");
@@ -581,7 +593,7 @@ export namespace LMState {
                 applyDefaultTheme(hasPolymer, cartoonsByChainId, "Cartoons", plugin, "polymer-visual");
             }
             applyDefaultTheme(hasHetBaS, ballsAndSticksByElementSymbol,"BallsAndSticks", plugin, "molecule-bas");
-            applyDefaultTheme(hasSurface, surfaceDefaultTheme,"Surface", plugin, "molecule-surface");
+            applyDefaultTheme(hasSurface, surfaceDefaultTheme,"Surface", plugin, "molecule-surface", 1);
             return;
         }
         
@@ -601,21 +613,25 @@ export namespace LMState {
 
     function applyDefaultTheme(hasRef: boolean, defaultThemeTemplate: LiteMol.Bootstrap.Visualization.Theme.Template, 
         defaultThemeType: "Cartoons" | "Calpha" | "BallsAndSticks" | "VDWBalls" | "Surface",
-        plugin: LiteMol.Plugin.Controller, visualRef: string ){
+        plugin: LiteMol.Plugin.Controller, visualRef: string, transparencyAlpha?:number){
         let defaultTheme = LiteMol.Bootstrap.Visualization.Molecule.Default.ForType.get(defaultThemeType);
         if(defaultTheme !== void 0 && hasRef){
             let c = LiteMol.Core.Utils.FastMap.create<string, LiteMol.Visualization.Color>();
             defaultThemeTemplate.colors!.forEach((cc, n) => {
                 c.set(n!, cc!);
-            });                 
-    
+            });   
+            
+            let transparency = defaultTheme.theme.transparency;
+            if(transparencyAlpha !== void 0){
+                transparency.alpha = transparencyAlpha;
+            }
             applyTheme(defaultThemeTemplate.provider(plugin.context.select(visualRef)[0], 
             {
                 colors: c,
                 disableFog: defaultTheme.theme.disableFog,
                 interactive: defaultTheme.theme.interactive,
                 isSticky: true,
-                transparency: defaultTheme.theme.transparency,
+                transparency: transparency,
                 variables: defaultTheme.theme.variables,
     
             }), plugin, visualRef);
@@ -647,6 +663,7 @@ export namespace LMState {
                 entity: plugin.context.select("molecule-surface")[0],
                 visible: false
             });
+            SharedStorage.set(VIZUALIZATION_MODE, MODE_BAS);
         }
         else{
             if(polymerVisual.length>0){
@@ -663,6 +680,7 @@ export namespace LMState {
                 entity: plugin.context.select("molecule-surface")[0],
                 visible: false
             });
+            SharedStorage.set(VIZUALIZATION_MODE, (polymerVisual.length>0)?MODE_CARTOONS:MODE_BAS);
         }
     }
 
@@ -739,6 +757,14 @@ export namespace LMState {
             entity: plugin.context.select("molecule-surface")[0],
             visible: true
         });
+        SharedStorage.set(VIZUALIZATION_MODE, MODE_SURFACE);
+    }
+
+    export function isVisible(plugin:LiteMol.Plugin.Controller, selector:string){
+        if(plugin.context.select(selector)[0] === void 0){
+            return false;
+        }
+        return plugin.context.select(selector)[0].state.visibility === 0;
     }
 
     export function switchToCartoons(plugin: LiteMol.Plugin.Controller){
@@ -757,7 +783,7 @@ export namespace LMState {
             entity: plugin.context.select("molecule-surface")[0],
             visible: false
         });
-        
+        SharedStorage.set(VIZUALIZATION_MODE, (polymerVisual.length>0)?MODE_CARTOONS:MODE_BAS);
     }
 
     export function switchToBaS(plugin: LiteMol.Plugin.Controller){
@@ -776,6 +802,7 @@ export namespace LMState {
             entity: plugin.context.select("molecule-surface")[0],
             visible: false
         });
+        SharedStorage.set(VIZUALIZATION_MODE, MODE_BAS);
     }
 
 }
