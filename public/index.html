@@ -171,6 +171,13 @@
         data-chtype="MOL2"
         onclick="testSendCommand(this);"
       >1tqn - default obabel charges (PDB->mol2)</button>
+      <button 
+        data-surl="http://waldemar.dominiktousek.eu:8181/share/1f16.pdb" 
+        data-churl="http://waldemar.dominiktousek.eu:8181/share/1tqn.mol2"
+        data-stype="PDB"
+        data-chtype="MOL2"
+        onclick="testSendCommand(this);"
+      >1F16 - default obabel charges (PDB->mol2)</button>
       |
       <button 
         data-surl="http://test.chargedb.dominiktousek.eu/files/structures/56615.sdf" 
@@ -179,6 +186,22 @@
         data-chtype="CHG"
         onclick="testSendCommand(this);"
       >001 - incompatible charges</button>
+      |
+      <button 
+        data-surl="http://waldemar.dominiktousek.eu:8181/share/1f16.pdb" 
+        data-churl="http://waldemar.dominiktousek.eu:8181/share/charges-not-available.chg"
+        data-stype="PDB"
+        data-chtype="CHG"
+        onclick="testSendCommand(this);"
+      >1F16 - charges not available</button>
+      |
+      <button 
+        data-surl="http://waldemar.dominiktousek.eu:8181/share/1f16.pdb" 
+        data-churl="http://waldemar.dominiktousek.eu:8181/share/1f16-ACC1.mol2"
+        data-stype="PDB"
+        data-chtype="MOL2"
+        onclick="testSendCommand(this);"
+      >1F16 - ACCI Charges</button>
       |
       <button 
         onclick="testSendCommandUseDefaultThemes(this, true);"
@@ -216,6 +239,13 @@
       <button 
         onclick="getVisualizationMode(this);"
       >get visualization mode</button>
+      |
+      <label for="vis-mode-input">Visualization mode: </label>
+      <input type="text" 
+        id="vis-mode-input"
+        disabled="disabled"
+        value="<unknown>"
+      />
     </div>
     <script type="text/javascript" src="%PUBLIC_URL%/LiteMol-plugin.min.js"></script>
     <script>
@@ -249,6 +279,10 @@
         LiteMolChargesViewerEventQueue.subscribe("lm-incomplete-charges-error", (eventInfo)=>{
           console.error("Atom count and count of calculated charges does not match! Atom count: " + eventInfo.atomCount +" | Charges count: "+eventInfo.chargesCount);
         });
+
+        LiteMolChargesViewerEventQueue.subscribe("lm-visualization-mode-changed", (eventInfo)=>{
+          document.getElementById("vis-mode-input").value=eventInfo.mode;
+        })
 
         // Auto-click and load choosen structure via button after page load
         setTimeout(()=>{

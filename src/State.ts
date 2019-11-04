@@ -432,6 +432,11 @@ export namespace LMState {
     export function loadData(plugin: LiteMol.Plugin.Controller, structureUrl: string, 
             chargesUrl: string, structureFormat: SupportedFormat, chargesFormat: SupportedChargesFormat) {
         EventQueue.unsubscribe(Events.LM_GET_VISUALIZATION_MODE, lm_get_visualization_mode_hndlr);
+
+        SharedStorage.set("CHARGES", []);
+        SharedStorage.set("RESIDUE-CHARGES", []);
+        SharedStorage.set("SURFACE-CHARGES", []);
+
         plugin.clear();
         
         let modelLoadPromise = new Promise<any>((res,rej)=>{
@@ -564,16 +569,17 @@ export namespace LMState {
             return;
         }
         let charges = SharedStorage.get("CHARGES");
-        if(charges === void 0){
-            //console.warn("No charges have been loaded! Skipping theme generation...");
-            return;
-        }
+        
         let hasSurface = (plugin.context.select('molecule-surface').length>0);
         let hasHetBaS = (plugin.context.select('molecule-bas').length>0);
         let hasHet = (plugin.context.select('molecule-het').length>0);
         let hasPolymer = (plugin.context.select('polymer-visual').length>0);
 
         let colorByAtom = SharedStorage.get("LM_USE_DEFAULT_THEMES");
+        if(charges === void 0 || charges === null || charges.length === 0){
+            //console.warn("No charges have been loaded! Skipping theme generation...");
+            colorByAtom = true;
+        }
         if(colorByAtom!==void 0 && colorByAtom !== null && colorByAtom){
             let ballsAndSticksByElementSymbol = LiteMol.Bootstrap.Visualization.Molecule.Default.Themes
                 .filter((v,i,a)=>{
@@ -663,7 +669,7 @@ export namespace LMState {
                 entity: plugin.context.select("molecule-surface")[0],
                 visible: false
             });
-            SharedStorage.set(VIZUALIZATION_MODE, MODE_BAS);
+            visualizationModeChanged(MODE_BAS);
         }
         else{
             if(polymerVisual.length>0){
@@ -680,8 +686,13 @@ export namespace LMState {
                 entity: plugin.context.select("molecule-surface")[0],
                 visible: false
             });
-            SharedStorage.set(VIZUALIZATION_MODE, (polymerVisual.length>0)?MODE_CARTOONS:MODE_BAS);
+            visualizationModeChanged((polymerVisual.length>0)?MODE_CARTOONS:MODE_BAS);
         }
+    }
+
+    function visualizationModeChanged(newMode:string){
+        SharedStorage.set(VIZUALIZATION_MODE, newMode);
+        EventQueue.send(Events.LM_VISUALIZATION_MODE_CHANGED, { mode: SharedStorage.get(VIZUALIZATION_MODE)});
     }
 
     function generateColorThemeSurface(plugin: LiteMol.Plugin.Controller, charges: number[]){     
@@ -757,7 +768,7 @@ export namespace LMState {
             entity: plugin.context.select("molecule-surface")[0],
             visible: true
         });
-        SharedStorage.set(VIZUALIZATION_MODE, MODE_SURFACE);
+        visualizationModeChanged(MODE_SURFACE);
     }
 
     export function isVisible(plugin:LiteMol.Plugin.Controller, selector:string){
@@ -783,7 +794,7 @@ export namespace LMState {
             entity: plugin.context.select("molecule-surface")[0],
             visible: false
         });
-        SharedStorage.set(VIZUALIZATION_MODE, (polymerVisual.length>0)?MODE_CARTOONS:MODE_BAS);
+        visualizationModeChanged((polymerVisual.length>0)?MODE_CARTOONS:MODE_BAS);
     }
 
     export function switchToBaS(plugin: LiteMol.Plugin.Controller){
@@ -802,7 +813,7 @@ export namespace LMState {
             entity: plugin.context.select("molecule-surface")[0],
             visible: false
         });
-        SharedStorage.set(VIZUALIZATION_MODE, MODE_BAS);
+        visualizationModeChanged(MODE_BAS);
     }
 
 }

@@ -34,8 +34,8 @@ export function HighlightCustomElements(context: Bootstrap.Context) {
             return void 0;
         }
         if((info as any).source.ref==="molecule-het" || (info as any).source.props.label === "Balls and Sticks"){
-            if(!SharedStorage.has("CHARGES")){
-                return void 0;
+            if(!SharedStorage.has("CHARGES") || SharedStorage.get("CHARGES").length === 0){
+                return `<b>Charges not available</b>`;
             }
             let charges = SharedStorage.get("CHARGES");
             let chg = charges[(info as any).elements[0]];
@@ -47,8 +47,8 @@ export function HighlightCustomElements(context: Bootstrap.Context) {
             return `<b>Charge</b>: ${Number(chg).toFixed(4)}`;
         }
         else if((info as any).source.ref==="polymer-visual"){
-            if(!SharedStorage.has("RESIDUE-CHARGES")){
-                return void 0;
+            if(!SharedStorage.has("RESIDUE-CHARGES") || SharedStorage.get("RESIDUE-CHARGES").length === 0){
+                return `<b>Charges not available</b>`;
             }
             let charges = SharedStorage.get("RESIDUE-CHARGES");
             let idxStart = (info as any).elements
@@ -63,8 +63,8 @@ export function HighlightCustomElements(context: Bootstrap.Context) {
             return `<b>Charge</b>: ${finalCharge}`;
         }
         else if((info as any).source.ref==="molecule-surface"){
-            if(!SharedStorage.has("SURFACE-CHARGES")){
-                return void 0;
+            if(!SharedStorage.has("SURFACE-CHARGES") || SharedStorage.get("SURFACE-CHARGES").length === 0){
+                return `<b>Charges not available</b>`;
             }
             let charges = SharedStorage.get("SURFACE-CHARGES");
             let chg = charges.get((info as any).elements[0]);
@@ -151,7 +151,7 @@ export function ShowInteractionOnSelect(radius: number) {
             if(colorByAtom!==void 0 && colorByAtom !== null && colorByAtom){
                 return;
             }
-            if(charges === void 0){
+            if(charges === void 0 || charges === null || charges.length === 0){
                 //console.warn("No charges have been loaded! Skipping theme generation...");
                 return;
             }
@@ -247,7 +247,7 @@ export function ShowInteractionOnSelect(radius: number) {
                 if(colorByAtom!==void 0 && colorByAtom !== null && colorByAtom){
                     return;
                 }
-                if(charges === void 0){
+                if(charges === void 0 || charges === null || charges.length === 0){
                     //console.warn("No charges have been loaded! Skipping theme generation...");
                     return;
                 }
