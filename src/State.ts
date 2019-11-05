@@ -223,6 +223,9 @@ export namespace LMState {
 
         let themeColorSettings = getAndAdaptColorSettings(minVal, maxVal);
         for(let i=0;i<indices.length;i++){
+            if(Number(indices[i])>=charges.length){
+                continue;
+            }
             let chg = charges[indices[i]];
             if(isNaN(chg)){
                 continue;
@@ -253,6 +256,50 @@ export namespace LMState {
         skipMiddle: boolean;
         centerPosition:number;
         centerAbsolute:boolean;
+    }
+
+    function getColorForSurface(value: number, settings: ColorPaletteFunctionSettings) {
+        let color = {
+            r: settings.minColorMiddle.r,
+            g: settings.minColorMiddle.g,
+            b: settings.minColorMiddle.b,
+        };
+
+        if (isNaN(value)) {
+            color = userRGBtoLMRGB({ 
+                r: 0,
+                g: 255,
+                b: 0})
+            return color;
+        }
+
+        if (value <= settings.minVal) {
+            color.r = settings.minColor.r;
+            color.g = settings.minColor.g;
+            color.b = settings.minColor.b;
+            return color;
+        }
+        if (value >= settings.maxVal) {
+            color.r = settings.maxColor.r;
+            color.g = settings.maxColor.g;
+            color.b = settings.maxColor.b;
+            return color;
+        }
+        var t, target, mid = settings.minColorMiddle;
+        if (value <= 0) {
+            t = value / settings.minVal;
+            target = settings.minColor;
+        }
+        else {
+            t = value / settings.maxVal;
+            target = settings.maxColor;
+        }
+
+        color.r = mid.r + (target.r - mid.r) * t;
+        color.g = mid.g + (target.g - mid.g) * t;
+        color.b = mid.b + (target.b - mid.b) * t;
+
+        return color;
     }
 
     function getColor(value: number, settings: ColorPaletteFunctionSettings){
@@ -361,6 +408,9 @@ export namespace LMState {
         let charges = [];
         for(let l of lines){
             let parts = l.replace(/\s+/g," ").replace(/^\s/g,"").split(" ");
+            if(parts.length<=1){
+                continue;
+            }
             charges.push(Number(parts[8]));
         }
 
@@ -495,7 +545,15 @@ export namespace LMState {
                         isBinding: false,
                         isHidden: false,
                     });
-                        
+                let defaultSfcP = LiteMol.Bootstrap.Visualization.Molecule.Default.SurfaceParams;
+
+                let surfaceParams = {
+                    automaticDensity: false,
+                    density: 1.77,
+                    isWireframe: defaultSfcP.isWireframe,
+                    probeRadius: 0.5,//defaultSfcP.probeRadius,
+                    smoothing: defaultSfcP.smoothing
+                };
                 let surfaceTransform = plugin.createTransform()
                     .add(node, Transformer.Molecule.CreateVisual, 
                     { 
@@ -503,7 +561,7 @@ export namespace LMState {
                             isNotSelectable: false,
                             type: "Surface",
                             taskType: "Background",
-                            params: LiteMol.Bootstrap.Visualization.Molecule.Default.SurfaceParams,
+                            params: surfaceParams,
                             theme: defaultSurfaceTheme.theme,
                         }
                     },{
@@ -708,7 +766,7 @@ export namespace LMState {
             indices = props.model.entity.props.model.positions.indices;
         }
 
-        let entity = results[0];
+        /*let entity = results[0];
         let model = LiteMol.Bootstrap.Utils.Molecule.findModel(entity)!.props.model;
         let atomRadius = LiteMol.Bootstrap.Utils.vdwRadiusFromElementSymbol(model);
         let surfaceParams = LiteMol.Bootstrap.Visualization.Molecule.Default.SurfaceParams;
@@ -723,27 +781,37 @@ export namespace LMState {
         }
         else {
             vdwScaleFactor = 1 + (1 - density * density);
-        }
+        }*/
 
         let minVal = charges.reduce((pv,cv,ci,a)=>{
-            let r = vdwScaleFactor * atomRadius(ci) + probeRadius;
-            return Math.min(cv/r, pv);
+            //let r = vdwScaleFactor * atomRadius(ci) + probeRadius;
+            return Math.min(cv/*/r*/, pv);
         }, Number.MAX_VALUE);
         let maxVal = charges.reduce((pv,cv,ci,a)=>{
-            let r = vdwScaleFactor * atomRadius(ci) + probeRadius;
-            return Math.max(cv/r, pv);
+            //let r = vdwScaleFactor * atomRadius(ci) + probeRadius;
+            return Math.max(cv/*/r*/, pv);
         }, Number.MIN_VALUE);
 
         let themeColorSettings = getAndAdaptColorSettings(minVal, maxVal);
         let surfaceCharges = new Map<number, number>();
         for(let i=0;i<indices.length;i++){
-            let r = vdwScaleFactor * atomRadius(i) + probeRadius;
-            let chg = charges[indices[i]]/r;
-            surfaceCharges.set(indices[i], chg);
-            if(isNaN(chg)){
+            //let r = vdwScaleFactor * atomRadius(i) + probeRadius;
+            if(Number(indices[i])>=charges.length){
+                console.log(charges.length + "[ind:"+indices[i]+"] {i:"+i+"}");
                 continue;
             }
-            let color = getColor(chg, themeColorSettings);
+            /*if(isNaN(r)||r==0){
+                console.log("R:");
+                console.log(r);
+                continue;
+            }*/
+            let chg = charges[indices[i]]/*/r*/;
+            surfaceCharges.set(indices[i], chg);
+            if(isNaN(chg)){
+                colors.set(indices[i], void 0);
+                continue;
+            }
+            let color = getColorForSurface(chg, themeColorSettings);
             colors.set(indices[i], color);
         }
 

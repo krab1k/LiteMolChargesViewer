@@ -261,6 +261,8 @@
           fallbackColor?: {r:number,g:number,b:number};  // value range: <0-255> - for coloring of atoms without charges
         };  
         */
+
+        // Absolute  min and max values
         LiteMolChargesViewerEventQueue.send("lm-set-default-color-scheme", {
           minVal: -1,
           maxVal: 1,
@@ -270,6 +272,17 @@
           middleColor: {r: 255, g:255, b:255}
         });
 
+        // Relative min and max values
+/*
+        LiteMolChargesViewerEventQueue.send("lm-set-default-color-scheme", {
+          minVal: null,
+          maxVal: null,
+          fallbackColor: {r: 0, g:255, b:0},
+          minColor: {r: 255, g:0, b:0},
+          maxColor: {r: 0, g:0, b:255},
+          middleColor: {r: 255, g:255, b:255}
+        });
+*/
         /*
         eventInfo: {
           atomCount: data.atoms.count,
