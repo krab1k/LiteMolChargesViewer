@@ -30,6 +30,8 @@ sed -i -e "s/main.[[:alnum:]]*.js/main.js?version=${VERSION}/g" index.html
 mv ./static/js/main.*.js.map ./static/js/main.js.map
 mv ./static/js/main.*.js ./static/js/main.js
 
+sed -i -e "s/sourceMappingURL=main.[[:alnum:]]*.js.map/sourceMappingURL=main.js.map/g" static/js/main.js
+
 # rename fontello.*.eot/woff2/svg/ttf/woff to fontello.eot/woff2/svg/ttf/woff
 mv ./static/media/fontello.*.eot ./static/media/fontello.eot
 mv ./static/media/fontello.*.woff2 ./static/media/fontello.woff2

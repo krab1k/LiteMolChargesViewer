@@ -393,11 +393,14 @@ export namespace LMState {
             let parts = l.replace(/\s+/g," ").replace(/^\s/g,"").split(" ");
             charges.push(Number(parts[2]));
         }
-
         return charges;
     }
 
     function parseMOL2(contents:string){
+        if(contents.indexOf("@<TRIPOS>ATOM") < 0
+            || contents.indexOf("@<TRIPOS>") < 0 ){
+            return [];
+        }
         contents = contents.split("@<TRIPOS>ATOM")[1];
         contents = contents.split("@<TRIPOS>")[0];
 
