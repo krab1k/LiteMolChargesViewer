@@ -26,6 +26,11 @@ export namespace LMState {
     export let MODE_CARTOONS = "cartoons";
     export let MODE_BAS = "balls-and-sticks";
 
+    export let INDICES_TO_CHARGES_MAPPING = "indices-to-charges-mapping";
+    export let INDICES_TO_RESIDUE_CHARGES_MAPPING = "indices-to-residue-charges-mapping";
+    // Now these are the same as INDICES_TO_CHARGES_MAPPING
+    export let INDICES_TO_SURFACE_CHARGES_MAPPING = INDICES_TO_CHARGES_MAPPING; // "indices-to-surface-charges-mapping";
+
     let lm_get_visualization_mode_hndlr = (hndlr)=>{
         hndlr(SharedStorage.get(VIZUALIZATION_MODE));
     };
@@ -75,7 +80,7 @@ export namespace LMState {
         return theme; 
     }
 
-    function getLMMoleculeProps(plugin: LiteMol.Plugin.Controller):null|any{
+    function getLMMoleculePropsData(plugin: LiteMol.Plugin.Controller):null|any{
         let data = null;
         plugin.context.tree.refs.forEach((v,k,ctx)=>{
             if("molecule" in v[0].props){
@@ -86,15 +91,50 @@ export namespace LMState {
         return data;
     }
 
+    function getLMMoleculeProps(plugin: LiteMol.Plugin.Controller):null|any{
+        let data = null;
+        plugin.context.tree.refs.forEach((v,k,ctx)=>{
+            if("molecule" in v[0].props){
+                data = (v[0].props as any);
+            }
+        });
+
+        return data;
+    }
+
     function generateColorThemeCartoons(plugin: LiteMol.Plugin.Controller, charges: number[]){
         let colors = new Map<number, LiteMol.Visualization.Color>();       
-
         let minVal = 0;
         let maxVal = 0;
         let residueCharges = new Map<number, number>();
         let residueChargesIdxMapping = new Map<number, number>();
-        
-        let data = getLMMoleculeProps(plugin);
+
+        let indToChgMapping = new Map<number, number>();
+        let mProps = getLMMoleculeProps(plugin);
+        if(mProps === null){
+            throw new Error("LiteMol element tree is not initialized yet!");
+        }
+
+        let props = {
+            model: {
+                entity: {
+                    props: {
+                        model:mProps.molecule.models[0]
+                    }
+                }
+            }
+        };
+
+        if(!SharedStorage.has(INDICES_TO_CHARGES_MAPPING)){
+            indToChgMapping = SharedStorage.get(INDICES_TO_CHARGES_MAPPING)!;
+        }
+        else{
+            indToChgMapping = createIndicesToChargesMapping(props, charges);
+        }
+
+        SharedStorage.set(INDICES_TO_CHARGES_MAPPING, indToChgMapping);
+        let altLoc = getAltLocations(props);
+        let data = getLMMoleculePropsData(plugin);
         if(data === null){
             throw new Error("LiteMol element tree is not initialized yet!");
         }
@@ -103,9 +143,15 @@ export namespace LMState {
             let atomStartIdx = residueData.atomStartIndex[i];
             let atomEndIdx = residueData.atomEndIndex[i];
             let finalCharge = 0;
+            let hasCharge = false;
             
             for(let aIdx=atomStartIdx; aIdx<atomEndIdx; aIdx++){
-                finalCharge += charges[aIdx];
+                let chgId = indToChgMapping.get(aIdx);
+                if(chgId === void 0){
+                    continue;
+                }
+                hasCharge = true;
+                finalCharge += charges[chgId];
             }
 
             if(isNaN(finalCharge)){
@@ -115,9 +161,14 @@ export namespace LMState {
             minVal = Math.min(minVal, finalCharge);
             maxVal = Math.max(maxVal, finalCharge);
 
-            residueCharges.set(atomStartIdx, finalCharge);
-            for(let aIdx=atomStartIdx; aIdx<atomEndIdx; aIdx++){
-                residueChargesIdxMapping.set(aIdx, finalCharge);
+            if(hasCharge){
+                residueCharges.set(atomStartIdx, finalCharge);
+                for(let aIdx=atomStartIdx; aIdx<atomEndIdx; aIdx++){
+                    if(altLoc[aIdx]==="EDITED"){
+                        continue;
+                    }
+                    residueChargesIdxMapping.set(aIdx, finalCharge);
+                }
             }
         }
 
@@ -178,64 +229,157 @@ export namespace LMState {
         return cloned;
     }
 
-    export function generateColorTheme(plugin: LiteMol.Plugin.Controller, charges: number[], visualRef: string){
-        let colors = new Map<number, LiteMol.Visualization.Color>();       
-        let minVal = charges.reduce((pv,cv,ci,a)=>{
-            return Math.min(cv, pv);
-        });
-        let maxVal = charges.reduce((pv,cv,ci,a)=>{
-            return Math.max(cv, pv);
-        });
+    function getAltLocations(props:any){
+        if(props.model.data !== void 0){
+            return props.model.data.atoms.altLoc;
+        }
+        if(props.model.entity.props.model!==void 0 && props.model.entity.props.model.data !== void 0){
+            return props.model.entity.props.model.data.atoms.altLoc;
+        }
+        return null;
+    }
 
-        let props = (plugin.selectEntities(visualRef)[0].props as any);
+    function getEntityProps(entity:LiteMol.Bootstrap.Entity.Any){
+        return (entity.props as any);
+    }
+
+    function getIndices(props:any){
         let indices = props.model.entity.props.indices;
+        
         if (indices === void 0){
             indices = props.model.entity.props.model.positions.indices;
         }
-        let themeColorSettings = getAndAdaptColorSettings(minVal, maxVal);
-        for(let i=0;i<indices.length;i++){
-            let chg = charges[indices[i]];
-            if(isNaN(chg)){
-                continue;
-            }
-            let color = getColor(chg, themeColorSettings);
-            colors.set(indices[i], color);
+        return (indices===void 0)?null:indices;
+    }
+
+    function getEntityIds(props:any){
+        if(props.model.data !== void 0){
+            return props.model.data.atoms.id;
         }
+        
+        if(props.model.entity.props.model!==void 0 && props.model.entity.props.model.data !== void 0){
+            return props.model.entity.props.model.data.atoms.id;
+        }
+        return null;
+    }
+
+    export function generateColorTheme(plugin: LiteMol.Plugin.Controller, charges: number[], visualRef: string){
+        let colors = new Map<number, LiteMol.Visualization.Color>();   
+        let indToChgMapping = new Map<number, number>();
+
+        let props = getEntityProps(plugin.selectEntities(visualRef)[0]);
+
+        if(!SharedStorage.has(INDICES_TO_CHARGES_MAPPING)){
+            indToChgMapping = SharedStorage.get(INDICES_TO_CHARGES_MAPPING)!;
+        }
+        else{
+            indToChgMapping = createIndicesToChargesMapping(props, charges);
+        }
+
+        SharedStorage.set(INDICES_TO_CHARGES_MAPPING, indToChgMapping);
+
+        colors = createColorMapping(charges,props,indToChgMapping);
 
         return createTheme(colors);          
     } 
 
+    function createIndicesToChargesMapping(props:any, charges:number[]){
+        let indices = getIndices(props);
+        let altLoc = getAltLocations(props);
+        let ids = getEntityIds(props);
+
+        let indToChgMapping = new Map<number, number>();     
+
+        let altLocCount = 0;
+        for(let i=0;i<indices.length;i++){
+            if(altLoc!== null && altLoc[i] !== null && altLoc[i] !== "A" && altLoc[i] !== "EDITED" && altLoc[i] !== void 0){
+                // console.info("createIndicesToChargesMapping: AltLoc["+altLoc[i]+"]: {ind:"+indices[i]+"} id:"+ids[indices[i]]);
+                altLocCount++;
+                continue;
+            }
+            if(altLoc!== null && altLoc[i] === "EDITED"){
+                altLocCount++;
+                // console.info("createIndicesToChargesMapping: AltLoc["+altLoc[i]+"]: {ind:"+indices[i]+"} id:"+ids[indices[i]]);
+                let firstAltLocInd = getFirstAltLocInd(i,altLoc);
+                let chg = charges[indices[firstAltLocInd]-altLocCount];
+                if(isNaN(chg)){
+                    continue;
+                }
+                indToChgMapping.set(indices[i], indices[firstAltLocInd]-altLocCount);
+                continue;
+            }
+            if(Number(indices[i]-altLocCount)>=charges.length){
+                continue;
+            }
+            let chg = charges[indices[i]-altLocCount];
+            if(isNaN(chg)){
+                continue;
+            }
+            indToChgMapping.set(indices[i], indices[i]-altLocCount);
+        }
+
+        return indToChgMapping;
+    }
+
     export function generateColorThemeBySelector(plugin: LiteMol.Plugin.Controller, charges: number[], selector: string){
-        let colors = new Map<number, LiteMol.Visualization.Color>();       
-        let minVal = charges.reduce((pv,cv,ci,a)=>{
-            return Math.min(cv, pv);
-        });
-        let maxVal = charges.reduce((pv,cv,ci,a)=>{
-            return Math.max(cv, pv);
-        });
+        let colors = new Map<number, LiteMol.Visualization.Color>();  
+        let indToChgMapping: Map<number, number>;     
 
         let results = plugin.selectEntities(selector);
         if(results===void 0 || results.length === 0){
             return;
         }
-        let props = (results[0].props as any);
-        let indices = props.model.entity.props.indices;
+
+        let props = getEntityProps(results[0]);
+        
+        if(!SharedStorage.has(INDICES_TO_CHARGES_MAPPING)){
+            indToChgMapping = SharedStorage.get(INDICES_TO_CHARGES_MAPPING)!;
+        }
+        else{
+            indToChgMapping = createIndicesToChargesMapping(props, charges);
+        }
+
+        SharedStorage.set(INDICES_TO_CHARGES_MAPPING, indToChgMapping);
+
+        colors = createColorMapping(charges,props,indToChgMapping);
+        
+        return createTheme(colors);          
+    } 
+
+    function createColorMapping(charges:number[], props:any, indToChgMapping:Map<number, number>){
+        let colors = new Map<number, LiteMol.Visualization.Color>();  
+        let minVal = charges.reduce((pv,cv,ci,a)=>{
+            return Math.min(cv, pv);
+        });
+        let maxVal = charges.reduce((pv,cv,ci,a)=>{
+            return Math.max(cv, pv);
+        });
+
+        let indices = getIndices(props);
+        let altLoc = getAltLocations(props);
+        // let ids = getEntityIds(props);
 
         let themeColorSettings = getAndAdaptColorSettings(minVal, maxVal);
+        let altLocColor = LiteMol.Visualization.Color.fromHexString("#f5ee23");
         for(let i=0;i<indices.length;i++){
-            if(Number(indices[i])>=charges.length){
+            let chgInd = Number(indToChgMapping.get(indices[i]));
+            if(altLoc !==null && altLoc[i] !== null && altLoc[i] !== "A" && altLoc[i] !== "EDITED" && altLoc[i] !== void 0){
+                // console.info("createColorMapping: AltLoc["+altLoc[i]+"]: {ind:"+indices[i]+"} id:"+ids[indices[i]]);
+                colors.set(indices[i], altLocColor);
                 continue;
             }
-            let chg = charges[indices[i]];
+            if(chgInd>=charges.length){
+                continue;
+            }
+            let chg = charges[chgInd];
             if(isNaN(chg)){
                 continue;
             }
             let color = getColor(chg, themeColorSettings);
             colors.set(indices[i], color);
         }
-
-        return createTheme(colors);          
-    } 
+        return colors;
+    }
 
     interface ColorPaletteFunctionSettingsFromUser{
         minVal?:number|null;
@@ -422,6 +566,9 @@ export namespace LMState {
 
     function parseTXT(contents:string) {
         let lines = contents.split("\n");
+        if(lines.length < 2){
+            return [];
+        }
         let chgLine = lines[1];
         let charges = [];
         for(let l of chgLine.split(/\s+/)) {
@@ -431,7 +578,7 @@ export namespace LMState {
     }
 
     function checkChargesCount(charges: number[], plugin: LiteMol.Plugin.Controller){
-        let data = getLMMoleculeProps(plugin);
+        let data = getLMMoleculePropsData(plugin);
         if(data === null){
             return;
         }
@@ -459,9 +606,69 @@ export namespace LMState {
                     { 
                         isBinding: true 
                     })
-                .then(Transformer.Molecule.CreateModel, { modelIndex: 0 }, {ref: "structure_model"});
+                // Show all alternative locations in place
+                //.then(Transformer.Molecule.CreateModel, { modelIndex: 0 }, {ref: "structure_model"});
+                // Show only first alternative location in place and hide others
+                .then(CreateModelWithoutAltLoc, { modelIndex: 0 }, {ref: "structure_model"});
             return plugin.applyTransform(model);
     }
+
+    function getFirstAltLocInd(currentInd: number, altLocs:string[]){
+        for(let i=currentInd;i>=0;i--){
+            if(altLocs[i]==="A"){
+                return i;
+            }
+        }
+    }
+
+    export const CreateModelWithoutAltLoc = LiteMol.Bootstrap.Tree.Transformer.create<LiteMol.Bootstrap.Entity.Molecule.Molecule, LiteMol.Bootstrap.Entity.Molecule.Model, LiteMol.Bootstrap.Entity.Transformer.Molecule.CreateModelParams>({
+        id: 'molecule-create-model',
+        name: 'Model',
+        description: 'Create a model of a molecule.',
+        from: [LiteMol.Bootstrap.Entity.Molecule.Molecule],
+        to: [LiteMol.Bootstrap.Entity.Molecule.Model],
+        isUpdatable: true,
+        defaultParams: ctx => ({ modelIndex: 0 })
+    }, (ctx, a, t) => {
+        return LiteMol.Bootstrap.Task.create<LiteMol.Bootstrap.Entity.Molecule.Model>(`Create Model (${a.props.label})`, 'Background', async ctx => {
+            let params = t.params;
+            let index = params.modelIndex | 0;
+            let model = a.props.molecule.models[index];
+            let toRemove = [];
+
+            for(let i = 0;i<model.data.atoms.count;i++){
+                if(model.data.atoms.altLoc[i]!==void 0 && model.data.atoms.altLoc[i]!==null && model.data.atoms.altLoc[i]!=="A" && model.data.atoms.altLoc[i]!=="EDITED"){
+                    toRemove.push(i);
+                    let firstAltLocInd = getFirstAltLocInd(i, model.data.atoms.altLoc);
+
+                    model.data.atoms.altLoc[i] = "EDITED";
+                    model.data.atoms.authName[i] = model.data.atoms.authName[firstAltLocInd];
+                    model.data.atoms.chainIndex[i] = model.data.atoms.chainIndex[firstAltLocInd];
+                    model.data.atoms.elementSymbol[i] = model.data.atoms.elementSymbol[firstAltLocInd];
+                    model.data.atoms.entityIndex[i] = model.data.atoms.entityIndex[firstAltLocInd];
+                    model.data.atoms.id[i] = model.data.atoms.id[firstAltLocInd];
+                    model.data.atoms.name[i] = model.data.atoms.name[firstAltLocInd];
+                    model.data.atoms.occupancy[i] = model.data.atoms.occupancy[firstAltLocInd];
+                    model.data.atoms.residueIndex[i] = model.data.atoms.residueIndex[firstAltLocInd];
+                    model.data.atoms.rowIndex[i] = model.data.atoms.rowIndex[firstAltLocInd];
+                    model.data.atoms.tempFactor[i] = model.data.atoms.tempFactor[firstAltLocInd];
+                    
+                    model.positions.x[i] = model.positions.x[firstAltLocInd];
+                    model.positions.y[i] = model.positions.y[firstAltLocInd];
+                    model.positions.z[i] = model.positions.z[firstAltLocInd];                    
+                }
+            }
+
+            if (!model) {
+                throw `The molecule contains only ${a.props.molecule.models.length} model(s), tried to access the ${index + 1}-th.`;
+            }
+            return LiteMol.Bootstrap.Entity.Molecule.Model.create(t, {
+                label: 'Model ' + model.modelId,
+                description: `${model.data.atoms.count} atom${model.data.atoms.count !== 1 ? 's' : ''}`,
+                model
+            });
+        });
+    });
 
     function getModelNode(plugin: LiteMol.Plugin.Controller, node?:LiteMol.Bootstrap.Entity.Any): LiteMol.Bootstrap.Entity.Any|null{
         if(node === void 0){
@@ -489,6 +696,7 @@ export namespace LMState {
         SharedStorage.set("CHARGES", []);
         SharedStorage.set("RESIDUE-CHARGES", []);
         SharedStorage.set("SURFACE-CHARGES", []);
+        SharedStorage.set(INDICES_TO_CHARGES_MAPPING, []);
 
         plugin.clear();
         
@@ -664,14 +872,14 @@ export namespace LMState {
             return;
         }
         
+        if(hasHetBaS){
+            applyTheme(generateColorTheme(plugin, charges, 'molecule-bas'), plugin, 'molecule-bas');
+        }
         if(hasHet){
             applyTheme(generateColorTheme(plugin, charges, "molecule-het"), plugin, 'molecule-het');
         }
         if(hasPolymer){
             applyTheme(generateColorThemeCartoons(plugin, charges), plugin, 'polymer-visual');
-        }
-        if(hasHetBaS){
-            applyTheme(generateColorTheme(plugin, charges, 'molecule-bas'), plugin, 'molecule-bas');
         }
         if(hasSurface){
             applyTheme(generateColorThemeSurface(plugin, charges), plugin, 'molecule-surface');
@@ -758,70 +966,64 @@ export namespace LMState {
 
     function generateColorThemeSurface(plugin: LiteMol.Plugin.Controller, charges: number[]){     
         let colors = new Map<number, LiteMol.Visualization.Color>();       
-
+        let indToChgMapping: Map<number,number>;
         let results = plugin.selectEntities('molecule-surface');
         if(results===void 0 || results.length === 0){
             return;
         }
-        let props = (results[0].props as any);
-        let indices = props.model.entity.props.indices;
-        if(indices === void 0){
-            indices = props.model.entity.props.model.positions.indices;
+
+        let props = getEntityProps(results[0]);
+
+        if(!SharedStorage.has(INDICES_TO_SURFACE_CHARGES_MAPPING)){
+            indToChgMapping = SharedStorage.get(INDICES_TO_SURFACE_CHARGES_MAPPING)!;
+        }
+        else{
+            indToChgMapping = createIndicesToChargesMapping(props, charges);
         }
 
-        /*let entity = results[0];
-        let model = LiteMol.Bootstrap.Utils.Molecule.findModel(entity)!.props.model;
-        let atomRadius = LiteMol.Bootstrap.Utils.vdwRadiusFromElementSymbol(model);
-        let surfaceParams = LiteMol.Bootstrap.Visualization.Molecule.Default.SurfaceParams;
-        let density = surfaceParams.density;
-        let probeRadius = surfaceParams.probeRadius;
-        let vdwScaleFactor;
+        SharedStorage.set(INDICES_TO_SURFACE_CHARGES_MAPPING, indToChgMapping);
 
-        // make the atoms artificially bigger for low resolution surfaces
-        if (density >= 0.99)  {
-            // so that the number is float and not int32 internally 
-            vdwScaleFactor = 1.000000001; 
-        }
-        else {
-            vdwScaleFactor = 1 + (1 - density * density);
-        }*/
+        colors = createColorMappingForSurface(charges,props,indToChgMapping);
 
+        SharedStorage.set("SURFACE-CHARGES", charges);
+
+        return createTheme(colors);        
+    } 
+
+    function createColorMappingForSurface(charges:number[], props:any, indToChgMapping:Map<number, number>){
+        let colors = new Map<number, LiteMol.Visualization.Color>();  
         let minVal = charges.reduce((pv,cv,ci,a)=>{
-            //let r = vdwScaleFactor * atomRadius(ci) + probeRadius;
-            return Math.min(cv/*/r*/, pv);
-        }, Number.MAX_VALUE);
+            return Math.min(cv, pv);
+        });
         let maxVal = charges.reduce((pv,cv,ci,a)=>{
-            //let r = vdwScaleFactor * atomRadius(ci) + probeRadius;
-            return Math.max(cv/*/r*/, pv);
-        }, Number.MIN_VALUE);
+            return Math.max(cv, pv);
+        });
+
+        let indices = getIndices(props);
+        let altLoc = getAltLocations(props);
+        // let ids = getEntityIds(props);
 
         let themeColorSettings = getAndAdaptColorSettings(minVal, maxVal);
-        let surfaceCharges = new Map<number, number>();
+        let altLocColor = LiteMol.Visualization.Color.fromHexString("#f5ee23");
         for(let i=0;i<indices.length;i++){
-            //let r = vdwScaleFactor * atomRadius(i) + probeRadius;
-            if(Number(indices[i])>=charges.length){
-                console.log(charges.length + "[ind:"+indices[i]+"] {i:"+i+"}");
+            let chgInd = Number(indToChgMapping.get(indices[i]));
+            if(altLoc[i] !== null && altLoc[i] !== "A" && altLoc[i] !== "EDITED" && altLoc[i] !== void 0){
+                // console.log("createColorMappingForSurface: AltLoc["+altLoc[i]+"]: {ind:"+indices[i]+"} id:"+ids[indices[i]]);
+                colors.set(indices[i], altLocColor);
                 continue;
             }
-            /*if(isNaN(r)||r==0){
-                console.log("R:");
-                console.log(r);
+            if(chgInd>=charges.length){
                 continue;
-            }*/
-            let chg = charges[indices[i]]/*/r*/;
-            surfaceCharges.set(indices[i], chg);
+            }
+            let chg = charges[chgInd];
             if(isNaN(chg)){
-                colors.set(indices[i], void 0);
                 continue;
             }
             let color = getColorForSurface(chg, themeColorSettings);
             colors.set(indices[i], color);
         }
-
-        SharedStorage.set("SURFACE-CHARGES", surfaceCharges);
-
-        return createTheme(colors);        
-    } 
+        return colors;
+    }
 
     export function switchToSurface(plugin: LiteMol.Plugin.Controller){
         let polymerVisual = plugin.context.select("polymer-visual");

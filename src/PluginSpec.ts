@@ -25,6 +25,18 @@ import { Controller } from 'LiteMol-plugin';
 /** An ugly hack that will be removed when the time comes */
 export let SuppressShowInteractionOnSelect:boolean = false;
 
+function getChg(idx:number, charges:Map<number, number>, mappingKey:string){
+    let indToChgMapping = SharedStorage.get(mappingKey);
+    if(indToChgMapping === void 0 || indToChgMapping === null){
+        return void 0;
+    }
+    let chgIndex = indToChgMapping.get(idx);
+    if(charges === void 0 || charges === null || chgIndex === void 0){
+        return void 0;
+    }
+    return charges[chgIndex];
+}
+
 /**
  * Support for custom highlight tooltips.
  */
@@ -38,7 +50,7 @@ export function HighlightCustomElements(context: Bootstrap.Context) {
                 return `<b>Charges not available</b>`;
             }
             let charges = SharedStorage.get("CHARGES");
-            let chg = charges[(info as any).elements[0]];
+            let chg = getChg((info as any).elements[0],charges,LMState.INDICES_TO_CHARGES_MAPPING);
 
             if (isNaN(chg)){
                 return `<b>Charge</b>: (not available)`;
@@ -67,7 +79,7 @@ export function HighlightCustomElements(context: Bootstrap.Context) {
                 return `<b>Charges not available</b>`;
             }
             let charges = SharedStorage.get("SURFACE-CHARGES");
-            let chg = charges.get((info as any).elements[0]);
+            let chg = getChg((info as any).elements[0],charges, LMState.INDICES_TO_SURFACE_CHARGES_MAPPING);
             chg = LMState.roundTo4Positions(chg);
             
             if (isNaN(chg)){
