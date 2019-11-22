@@ -3,7 +3,7 @@ export CONTEXT_URL=/ # for use on root context
 export ASSETS_PATH=static/litemol/	# do not add / at the start!
 if [ -z "${VERSION}" ]
 then
-	export VERSION=r6.4	# set version here manualy
+	export VERSION=r6.5	# set version here manualy
 else
 	export VERSION=${VERSION}	# or export VERSION variable before npm run build
 fi

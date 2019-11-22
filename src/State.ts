@@ -150,6 +150,9 @@ export namespace LMState {
                 if(chgId === void 0){
                     continue;
                 }
+                if(altLoc[aIdx]==="EDITED"){
+                    continue;
+                }
                 hasCharge = true;
                 finalCharge += charges[chgId];
             }
@@ -164,9 +167,6 @@ export namespace LMState {
             if(hasCharge){
                 residueCharges.set(atomStartIdx, finalCharge);
                 for(let aIdx=atomStartIdx; aIdx<atomEndIdx; aIdx++){
-                    if(altLoc[aIdx]==="EDITED"){
-                        continue;
-                    }
                     residueChargesIdxMapping.set(aIdx, finalCharge);
                 }
             }
