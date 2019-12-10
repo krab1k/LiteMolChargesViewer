@@ -268,12 +268,26 @@ export namespace LMState {
         let indToChgMapping = new Map<number, number>();
 
         let props = getEntityProps(plugin.selectEntities(visualRef)[0]);
+        let mProps = getLMMoleculeProps(plugin);
+        if(mProps === null){
+            throw new Error("LiteMol element tree is not initialized yet!");
+        }
+
+        let mmProps = {
+            model: {
+                entity: {
+                    props: {
+                        model:mProps.molecule.models[0]
+                    }
+                }
+            }
+        };
 
         if(!SharedStorage.has(INDICES_TO_CHARGES_MAPPING)){
             indToChgMapping = SharedStorage.get(INDICES_TO_CHARGES_MAPPING)!;
         }
         else{
-            indToChgMapping = createIndicesToChargesMapping(props, charges);
+            indToChgMapping = createIndicesToChargesMapping(mmProps, charges);
         }
 
         SharedStorage.set(INDICES_TO_CHARGES_MAPPING, indToChgMapping);
@@ -301,11 +315,11 @@ export namespace LMState {
                 altLocCount++;
                 // console.info("createIndicesToChargesMapping: AltLoc["+altLoc[i]+"]: {ind:"+indices[i]+"} id:"+ids[indices[i]]);
                 let firstAltLocInd = getFirstAltLocInd(i,altLoc);
-                let chg = charges[indices[firstAltLocInd]-altLocCount];
+                let chg = charges[indices[firstAltLocInd]-1];
                 if(isNaN(chg)){
                     continue;
                 }
-                indToChgMapping.set(indices[i], indices[firstAltLocInd]-altLocCount);
+                indToChgMapping.set(indices[i], indices[firstAltLocInd]-1);
                 continue;
             }
             if(Number(indices[i]-altLocCount)>=charges.length){
@@ -331,12 +345,25 @@ export namespace LMState {
         }
 
         let props = getEntityProps(results[0]);
-        
+        let mProps = getLMMoleculeProps(plugin);
+        if(mProps === null){
+            throw new Error("LiteMol element tree is not initialized yet!");
+        }
+
+        let mmProps = {
+            model: {
+                entity: {
+                    props: {
+                        model:mProps.molecule.models[0]
+                    }
+                }
+            }
+        };
         if(!SharedStorage.has(INDICES_TO_CHARGES_MAPPING)){
             indToChgMapping = SharedStorage.get(INDICES_TO_CHARGES_MAPPING)!;
         }
         else{
-            indToChgMapping = createIndicesToChargesMapping(props, charges);
+            indToChgMapping = createIndicesToChargesMapping(mmProps, charges);
         }
 
         SharedStorage.set(INDICES_TO_CHARGES_MAPPING, indToChgMapping);
@@ -785,7 +812,7 @@ export namespace LMState {
                     .add(node, Transformer.Molecule.CreateMacromoleculeVisual, 
                     { 
                         polymer: true, polymerRef: 'polymer-visual', het: true,
-                        hetRef: 'molecule-het', water: true, waterRef: 'molecule-het'
+                        hetRef: 'molecule-het', water: true, waterRef: 'molecule-water'
                     });
                 
                 let promises = [];
@@ -800,10 +827,11 @@ export namespace LMState {
                         return;
                     }
                     let hasHet = (plugin.context.select('molecule-het').length>0);
+                    let hasWater = (plugin.context.select('molecule-water').length>0);
                     let hasPolymer = (plugin.context.select('polymer-visual').length>0);
                     let hasBaS = (plugin.context.select('molecule-bas').length>0);
                     let hasSurface = (plugin.context.select('molecule-surface').length>0);
-                    if((!hasHet) && !hasPolymer && !hasBaS && !hasSurface){
+                    if((!hasHet) && !hasPolymer && !hasBaS && !hasSurface && !hasWater){
                         rej("Application was unable to retrieve protein structure file.");
                     }
                     else{      
@@ -842,6 +870,7 @@ export namespace LMState {
         let hasSurface = (plugin.context.select('molecule-surface').length>0);
         let hasHetBaS = (plugin.context.select('molecule-bas').length>0);
         let hasHet = (plugin.context.select('molecule-het').length>0);
+        let hasWater = (plugin.context.select('molecule-water').length>0);
         let hasPolymer = (plugin.context.select('polymer-visual').length>0);
 
         let colorByAtom = SharedStorage.get("LM_USE_DEFAULT_THEMES");
@@ -867,6 +896,9 @@ export namespace LMState {
             if(hasPolymer){
                 applyDefaultTheme(hasPolymer, cartoonsByChainId, "Cartoons", plugin, "polymer-visual");
             }
+            if(hasWater){
+                applyDefaultTheme(hasWater, ballsAndSticksByElementSymbol,"BallsAndSticks", plugin, "molecule-water");
+            }
             applyDefaultTheme(hasHetBaS, ballsAndSticksByElementSymbol,"BallsAndSticks", plugin, "molecule-bas");
             applyDefaultTheme(hasSurface, surfaceDefaultTheme,"Surface", plugin, "molecule-surface", 1);
             return;
@@ -877,6 +909,9 @@ export namespace LMState {
         }
         if(hasHet){
             applyTheme(generateColorTheme(plugin, charges, "molecule-het"), plugin, 'molecule-het');
+        }
+        if(hasWater){
+            applyTheme(generateColorTheme(plugin, charges, "molecule-water"), plugin, 'molecule-water');
         }
         if(hasPolymer){
             applyTheme(generateColorThemeCartoons(plugin, charges), plugin, 'polymer-visual');
